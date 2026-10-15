@@ -37,6 +37,7 @@ class StudyAssessmentPage extends StatefulWidget {
 
 class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
   final List<int?> _answers = List<int?>.filled(4, null);
+  bool _showResult = false;
   static const _questions = [
     'وقتی درس را می‌خوانی، چقدر می‌توانی بدون نگاه‌کردن به کتاب آن را توضیح بدهی؟',
     'چقدر زود مطالبی را که قبلاً خوانده‌ای فراموش می‌کنی؟',
@@ -53,7 +54,8 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
   @override
   Widget build(BuildContext context) {
     final answered = _answers.whereType<int>().length;
-    final score = _answers.whereType<int>().fold<int>(0, (sum, value) => sum + value);
+    final score = _answers.asMap().entries.fold<int>(0, (sum, entry) =>
+      sum + (entry.key == 1 ? 2 - entry.value! : entry.value!));
     final complete = answered == _questions.length;
     final advice = score <= 3
       ? 'از زمان کوتاه شروع کن، هر بار یک هدف کوچک تعیین کن و پس از مطالعه، مطلب را با زبان خودت توضیح بده.'
@@ -84,17 +86,17 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
                 value: option,
                 groupValue: _answers[index],
                 title: Text(_options[index][option]),
-                onChanged: (value) => setState(() => _answers[index] = value),
+                onChanged: (value) => setState(() { _answers[index] = value; _showResult = false; }),
               )),
             ],
           )),
         )),
         FilledButton.icon(
-          onPressed: complete ? () => setState(() {}) : null,
+          onPressed: complete ? () => setState(() => _showResult = true) : null,
           icon: const Icon(Icons.fact_check_outlined),
           label: const Text('نمایش جمع‌بندی'),
         ),
-        if (complete) ...[
+        if (complete && _showResult) ...[
           const SizedBox(height: 14),
           Container(padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(color: const Color(0xFFE3F2ED),
