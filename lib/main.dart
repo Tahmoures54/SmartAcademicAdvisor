@@ -506,92 +506,74 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   DateTime _dayOnly(DateTime value) => DateTime(value.year, value.month, value.day);
 
   Widget _weeklyProgressReport() {
-    final now = DateTime.now();
-    final today = _dayOnly(now);
-    final startThisWeek = today.subtract(Duration(days: today.weekday - 1));
-    final startLastWeek = startThisWeek.subtract(const Duration(days: 7));
+    final today = _dayOnly(DateTime.now());
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+    final lastStart = weekStart.subtract(const Duration(days: 7));
     int minutesIn(DateTime start, DateTime end) => _studySessions.where((session) {
       final date = DateTime.tryParse(session['date'] ?? '');
       return date != null && !date.isBefore(start) && date.isBefore(end);
     }).fold<int>(0, (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
-    final thisWeek = minutesIn(startThisWeek, startThisWeek.add(const Duration(days: 7)));
-    final lastWeek = minutesIn(startLastWeek, startThisWeek);
-    final difference = thisWeek - lastWeek;
-    final completion = _studyTasks.isEmpty ? 0 : ((_completedTasks.length / _studyTasks.length) * 100).round();
-    final completedLabel = '${_completedTasks.length} از ${_studyTasks.length}';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+    final current = minutesIn(weekStart, weekStart.add(const Duration(days: 7)));
+    final previous = minutesIn(lastStart, weekStart);
+    final delta = current - previous;
+    final percent = _studyTasks.isEmpty ? 0 : (_completedTasks.length * 100 / _studyTasks.length).round();
+    return Container(padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2EAE6))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Row(children: [
-          Icon(Icons.query_stats_rounded, color: Color(0xFF287D72)),
-          SizedBox(width: 8),
-          Expanded(child: Text('گزارش هفتگی پیشرفت', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
-        ]),
-        const SizedBox(height: 6),
-        Text('این هفته: $thisWeek دقیقه مطالعه', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 5),
-        Text('هفتهٔ قبل: $lastWeek دقیقه · ${difference > 0 ? 'افزایش' : difference < 0 ? 'کاهش' : 'بدون تغییر'} ${difference.abs()} دقیقه',
-          style: TextStyle(color: difference > 0 ? const Color(0xFF287D72) : Colors.black54)),
-        const SizedBox(height: 12),
+        const Text('گزارش هفتگی پیشرفت', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        Text('این هفته: $current دقیقه مطالعه', style: const TextStyle(fontWeight: FontWeight.w800)),
+        Text('هفتهٔ قبل: $previous دقیقه · \${delta > 0 ? 'افزایش' : delta < 0 ? 'کاهش' : 'بدون تغییر'} \${delta.abs()} دقیقه',
+          style: const TextStyle(color: Color(0xFF287D72))),
+        const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: _progressMetric('کارهای انجام‌شده', completedLabel)),
+          Expanded(child: _progressMetric('کارهای انجام‌شده', '\${_completedTasks.length} از \${_studyTasks.length}')),
           const SizedBox(width: 10),
-          Expanded(child: _progressMetric('پیشرفت برنامه', '$completion٪')),
+          Expanded(child: _progressMetric('پیشرفت برنامه', '$percent٪')),
         ]),
         const SizedBox(height: 8),
-        ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(
-          value: completion / 100, minHeight: 7, color: const Color(0xFF287D72),
-          backgroundColor: const Color(0xFFE3F2ED))),
+        LinearProgressIndicator(value: percent / 100, minHeight: 7,
+          color: const Color(0xFF287D72), backgroundColor: const Color(0xFFE3F2ED)),
         const SizedBox(height: 6),
-        const Text('مقایسهٔ زمان مطالعه بر اساس تاریخ ثبت جلسه‌هاست؛ درصد کارها، وضعیت فعلی برنامه را نشان می‌دهد.',
-          style: TextStyle(color: Colors.black54, fontSize: 11, height: 1.5)),
+        const Text('مقایسهٔ زمان مطالعه از روی تاریخ جلسه‌هاست؛ درصد کارها وضعیت فعلی برنامه را نشان می‌دهد.',
+          style: TextStyle(fontSize: 11, color: Colors.black54)),
       ]),
     );
   }
 
   Widget _reviewPracticeSection() {
-    final now = _dayOnly(DateTime.now());
-    final dueCards = _reviewCards.where((card) {
-      final due = DateTime.tryParse(card['due'] ?? '');
-      return due == null || !due.isAfter(now);
+    final today = _dayOnly(DateTime.now());
+    final due = _reviewCards.where((card) {
+      final date = DateTime.tryParse(card['due'] ?? '');
+      return date == null || !_dayOnly(date).isAfter(today);
     }).toList();
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+    return Container(padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2EAE6))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const Icon(Icons.psychology_alt_outlined, color: Color(0xFF287D72)),
-          const SizedBox(width: 8),
           const Expanded(child: Text('مرور فاصله‌دار و نقاط ضعف', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
-          Text('${dueCards.length} مرور', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
+          Text('\${due.length} مرور', style: const TextStyle(color: Color(0xFF287D72))),
         ]),
         const SizedBox(height: 6),
-        const Text('یک سؤال و پاسخ کوتاه ثبت کن. پاسخ‌های سخت‌تر زودتر و پاسخ‌های مطمئن با فاصلهٔ بیشتر مرور می‌شوند؛ داده‌ها فقط روی همین گوشی می‌مانند.',
+        const Text('سؤال و پاسخ خودت را ثبت کن. موارد دشوار زودتر و مواردی که بلد بودی با فاصلهٔ بیشتر مرور می‌شوند.',
           style: TextStyle(color: Colors.black54, height: 1.6, fontSize: 12)),
-        const SizedBox(height: 10),
         OutlinedButton.icon(onPressed: _localDataLoaded ? _addReviewCard : null,
-          icon: const Icon(Icons.add_rounded), label: const Text('افزودن سؤال برای مرور')),
+          icon: const Icon(Icons.add), label: const Text('افزودن سؤال برای مرور')),
         if (_reviewCards.isEmpty)
-          const Padding(padding: EdgeInsets.only(top: 8), child: Text('هنوز کارتی برای مرور نساخته‌ای.', textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54)))
-        else ...[
-          const SizedBox(height: 8),
-          ..._reviewCards.take(4).map((card) {
-            final due = DateTime.tryParse(card['due'] ?? '');
-            final isDue = due == null || !due.isAfter(now);
-            return Card(color: isDue ? const Color(0xFFEAF5F1) : const Color(0xFFF7F9F8),
-              child: ListTile(
-                title: Text(card['prompt'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('${card['subject'] ?? 'درس'} · ${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: ${due.year}/${due.month}/${due.day}'}'),
-                trailing: IconButton(tooltip: 'مرور سؤال', icon: const Icon(Icons.play_circle_outline_rounded),
-                  onPressed: () => _reviewOneCard(card)),
-              ));
-          }),
-        ],
+          const Text('هنوز کارتی برای مرور نساخته‌ای.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54))
+        else ..._reviewCards.take(4).map((card) {
+          final date = DateTime.tryParse(card['due'] ?? '');
+          final isDue = date == null || !_dayOnly(date).isAfter(today);
+          return Card(color: isDue ? const Color(0xFFEAF5F1) : const Color(0xFFF7F9F8),
+            child: ListTile(
+              title: Text(card['prompt'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+              subtitle: Text('\${card['subject'] ?? 'درس'} · \${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: \${date.year}/\${date.month}/\${date.day}'}'),
+              trailing: IconButton(tooltip: 'مرور سؤال', icon: const Icon(Icons.play_circle_outline),
+                onPressed: () => _reviewOneCard(card)),
+            ));
+        }),
       ]),
     );
   }
@@ -600,24 +582,25 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     final subject = TextEditingController();
     final prompt = TextEditingController();
     final answer = TextEditingController();
-    final result = await showDialog<Map<String, String>>(context: context, builder: (dialogContext) =>
-      AlertDialog(title: const Text('ساخت کارت مرور'),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: subject, decoration: const InputDecoration(labelText: 'نام درس')),
-          TextField(controller: prompt, decoration: const InputDecoration(labelText: 'سؤال یا نکتهٔ مهم')),
-          TextField(controller: answer, minLines: 2, maxLines: 4, decoration: const InputDecoration(labelText: 'پاسخ یا توضیح کوتاه')),
-        ])),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
-          FilledButton(onPressed: () {
-            if (subject.text.trim().isEmpty || prompt.text.trim().isEmpty || answer.text.trim().isEmpty) return;
-            Navigator.pop(dialogContext, {'subject': subject.text.trim(), 'prompt': prompt.text.trim(),
-              'answer': answer.text.trim(), 'due': DateTime.now().toIso8601String(), 'interval': '0', 'correct': '0', 'wrong': '0'});
-          }, child: const Text('ذخیره کارت')),
-        ]));
+    final card = await showDialog<Map<String, String>>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('ساخت کارت مرور'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: subject, decoration: const InputDecoration(labelText: 'نام درس')),
+        TextField(controller: prompt, decoration: const InputDecoration(labelText: 'سؤال یا نکته')),
+        TextField(controller: answer, minLines: 2, maxLines: 4, decoration: const InputDecoration(labelText: 'پاسخ کوتاه')),
+      ])),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+        FilledButton(onPressed: () {
+          if (subject.text.trim().isEmpty || prompt.text.trim().isEmpty || answer.text.trim().isEmpty) return;
+          Navigator.pop(dialogContext, {'subject': subject.text.trim(), 'prompt': prompt.text.trim(),
+            'answer': answer.text.trim(), 'due': DateTime.now().toIso8601String(), 'interval': '0', 'correct': '0', 'wrong': '0'});
+        }, child: const Text('ذخیره کارت')),
+      ],
+    ));
     Future<void>.delayed(const Duration(milliseconds: 300), () { subject.dispose(); prompt.dispose(); answer.dispose(); });
-    if (result == null || !mounted) return;
-    setState(() => _reviewCards.add(result));
+    if (card == null || !mounted) return;
+    setState(() => _reviewCards.add(card));
     await _saveData();
   }
 
@@ -626,15 +609,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     final grade = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
         title: Text(card['subject'] ?? 'مرور'),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(card['prompt'] ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.6)),
-          const SizedBox(height: 14),
-          if (!revealed) OutlinedButton.icon(onPressed: () => setDialogState(() => revealed = true),
-            icon: const Icon(Icons.visibility_outlined), label: const Text('نمایش پاسخ'))
-          else Container(width: double.infinity, padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(12)),
-            child: Text(card['answer'] ?? '', style: const TextStyle(height: 1.7))),
-        ])),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(card['prompt'] ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          if (revealed) Text(card['answer'] ?? '', style: const TextStyle(height: 1.7))
+          else OutlinedButton(onPressed: () => setDialogState(() => revealed = true), child: const Text('نمایش پاسخ')),
+        ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('بعداً')),
           if (revealed) TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('سخت بود')),
@@ -642,180 +622,150 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ],
       )));
     if (grade == null || !mounted) return;
-    final index = _reviewCards.indexOf(card);
-    if (index < 0) return;
     final previous = int.tryParse(card['interval'] ?? '0') ?? 0;
-    final nextInterval = grade ? (previous == 0 ? 1 : previous == 1 ? 3 : (previous * 2).clamp(1, 60)) : 1;
-    final due = DateTime.now().add(Duration(days: nextInterval));
+    final interval = grade ? (previous == 0 ? 1 : previous == 1 ? 3 : (previous * 2).clamp(1, 60)) : 1;
+    final dueDate = DateTime.now().add(Duration(days: interval));
     setState(() {
-      card['interval'] = nextInterval.toString();
-      card['due'] = due.toIso8601String();
-      card[grade ? 'correct' : 'wrong'] = ((int.tryParse(card[grade ? 'correct' : 'wrong'] ?? '0') ?? 0) + 1).toString();
+      card['interval'] = interval.toString();
+      card['due'] = dueDate.toIso8601String();
+      final key = grade ? 'correct' : 'wrong';
+      card[key] = ((int.tryParse(card[key] ?? '0') ?? 0) + 1).toString();
     });
     await _saveData();
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(grade ? 'آفرین؛ مرور بعدی ${due.year}/${due.month}/${due.day} است.' : 'اشکالی ندارد؛ این سؤال فردا دوباره مرور می‌شود.')));
+      content: Text(grade ? 'مرور بعدی \${dueDate.year}/\${dueDate.month}/\${dueDate.day} است.' : 'این سؤال فردا دوباره مرور می‌شود.')));
   }
 
   Widget _adaptivePlanCard() => Container(
     padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: const Color(0xFFEAF5F1), borderRadius: BorderRadius.circular(20)),
+    decoration: BoxDecoration(color: const Color(0xFFEAF5F1), borderRadius: BorderRadius.circular(18)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Row(children: [Icon(Icons.auto_awesome_rounded, color: Color(0xFF287D72)),
-        SizedBox(width: 8), Expanded(child: Text('برنامهٔ روزانهٔ متناسب با امتحان', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)))]),
+      const Text('برنامهٔ روزانهٔ متناسب با امتحان', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
       const SizedBox(height: 6),
-      const Text('تاریخ نزدیک‌ترین امتحان، درس‌هایی که تسلط کمتری در آن‌ها ثبت کرده‌ای و زمان آزاد روزانه را در برنامه لحاظ کن.',
-        style: TextStyle(height: 1.6, fontSize: 12)),
-      const SizedBox(height: 10),
+      const Text('زمان آزاد روزانه، نزدیک‌ترین امتحان و خودارزیابی تسلط درس‌ها در پیشنهاد لحاظ می‌شوند.',
+        style: TextStyle(fontSize: 12, height: 1.6)),
       FilledButton.icon(onPressed: _localDataLoaded ? _buildAdaptivePlan : null,
-        icon: const Icon(Icons.event_repeat_rounded), label: const Text('ساخت برنامهٔ پیشنهادی')),
+        icon: const Icon(Icons.event_repeat), label: const Text('ساخت برنامهٔ پیشنهادی')),
     ]),
   );
 
   Future<void> _buildAdaptivePlan() async {
     final minutesController = TextEditingController(text: '90');
-    final availableExams = _exams.where((exam) {
-      final date = DateTime.tryParse(exam['date'] ?? '');
-      return date != null && !_dayOnly(date).isBefore(_dayOnly(DateTime.now()));
-    }).toList()..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
-    final weakest = <String, double>{};
-    for (final session in _studySessions) {
-      final confidence = double.tryParse(session['confidence'] ?? '3') ?? 3;
-      final subject = session['subject'] ?? '';
-      if (subject.isNotEmpty) {
-        final prior = weakest[subject];
-        weakest[subject] = prior == null ? confidence : (prior + confidence) / 2;
-      }
-    }
     final result = await showDialog<int>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('زمان آزاد روزانه'),
       content: TextField(controller: minutesController, keyboardType: TextInputType.number,
-        decoration: const InputDecoration(labelText: 'دقیقه در روز', helperText: 'مثلاً ۹۰ دقیقه؛ برنامه واقع‌بینانه بماند.')),
+        decoration: const InputDecoration(labelText: 'دقیقه در روز', helperText: 'بین ۱۵ تا ۷۲۰ دقیقه')),
       actions: [
         TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
         FilledButton(onPressed: () {
           final value = int.tryParse(minutesController.text.trim());
           if (value != null && value >= 15 && value <= 720) Navigator.pop(dialogContext, value);
         }, child: const Text('ساخت برنامه')),
-      ]));
+      ],
+    ));
     Future<void>.delayed(const Duration(milliseconds: 300), minutesController.dispose);
     if (result == null || !mounted) return;
-    final exam = availableExams.isEmpty ? null : availableExams.first;
-    var subject = exam?['subject'] ?? '';
-    if (weakest.isNotEmpty) {
-      final weakestSubject = weakest.entries.toList()..sort((a, b) => a.value.compareTo(b.value));
-      if (subject.isEmpty || (weakest[subject] ?? 5) > weakestSubject.first.value) subject = weakestSubject.first.key;
+    final today = _dayOnly(DateTime.now());
+    final exams = _exams.where((exam) {
+      final date = DateTime.tryParse(exam['date'] ?? '');
+      return date != null && !_dayOnly(date).isBefore(today);
+    }).toList()..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
+    final averages = <String, List<int>>{};
+    for (final session in _studySessions) {
+      final subject = session['subject'] ?? '';
+      if (subject.isNotEmpty) averages.putIfAbsent(subject, () => []).add(int.tryParse(session['confidence'] ?? '3') ?? 3);
+    }
+    String subject = exams.isEmpty ? '' : (exams.first['subject'] ?? '');
+    if (averages.isNotEmpty) {
+      final weak = averages.entries.toList()..sort((a, b) {
+        final avA = a.value.reduce((x, y) => x + y) / a.value.length;
+        final avB = b.value.reduce((x, y) => x + y) / b.value.length;
+        return avA.compareTo(avB);
+      });
+      final known = averages[subject];
+      if (subject.isEmpty || (known == null ? 99 : known.reduce((x, y) => x + y) / known.length) >
+          weak.first.value.reduce((x, y) => x + y) / weak.first.value.length) subject = weak.first.key;
     }
     if (subject.isEmpty) subject = 'درس انتخابی';
-    final today = _dayOnly(DateTime.now());
-    final totalMinutes = result;
     final tasks = [
-      ('یادآوری و مرور فعال $subject', (totalMinutes * .3).round()),
-      ('تمرین و حل سؤال $subject', (totalMinutes * .45).round()),
-      ('تحلیل اشتباه‌ها و جمع‌بندی $subject', (totalMinutes * .25).round()),
+      'مرور فعال $subject · \${(result * 30 / 100).round()} دقیقه',
+      'تمرین و حل سؤال $subject · \${(result * 45 / 100).round()} دقیقه',
+      'تحلیل اشتباه‌ها و جمع‌بندی $subject · \${(result * 25 / 100).round()} دقیقه',
     ];
-    final deadline = exam == null ? today.add(const Duration(days: 2)) : _dayOnly(DateTime.parse(exam['date']!));
-    final availableDays = deadline.difference(today).inDays.clamp(0, 6);
+    final deadline = exams.isEmpty ? today.add(const Duration(days: 2)) : _dayOnly(DateTime.parse(exams.first['date']!));
+    final span = deadline.difference(today).inDays.clamp(0, 6);
     setState(() {
       for (var i = 0; i < tasks.length; i++) {
-        final task = '${tasks[i].$1} · ${tasks[i].$2} دقیقه';
-        if (!_studyTasks.contains(task)) _studyTasks.add(task);
-        final due = today.add(Duration(days: availableDays == 0 ? 0 : ((availableDays * i) / 2).round()));
-        _taskDueDates[task] = due.toIso8601String();
+        if (!_studyTasks.contains(tasks[i])) _studyTasks.add(tasks[i]);
+        final due = today.add(Duration(days: span == 0 ? 0 : (span * i / 2).round()));
+        _taskDueDates[tasks[i]] = due.toIso8601String();
       }
       for (final entry in _taskDueDates.entries.toList()) {
-        final due = DateTime.tryParse(entry.value);
-        if (due != null && _dayOnly(due).isBefore(today) && !_completedTasks.contains(_studyTasks.indexOf(entry.key))) {
+        final date = DateTime.tryParse(entry.value);
+        if (date != null && _dayOnly(date).isBefore(today) && !_completedTasks.contains(_studyTasks.indexOf(entry.key))) {
           _taskDueDates[entry.key] = today.toIso8601String();
         }
       }
       _tab = 'برنامه من';
     });
     await _saveData();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('برنامهٔ پیشنهادی برای $subject با مجموع $totalMinutes دقیقه ساخته شد.')));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('برنامهٔ پیشنهادی برای $subject با مجموع $result دقیقه ساخته شد.')));
   }
 
   Future<void> _openStepTutor() async {
-    final questionController = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('مربی آموزشی قدم‌به‌قدم'),
-        content: TextField(controller: questionController, minLines: 2, maxLines: 5,
-          decoration: const InputDecoration(labelText: 'سؤال یا مبحث', hintText: 'مثلاً کسرها را چطور حل کنم؟')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
-          FilledButton(onPressed: () {
-            if (questionController.text.trim().isNotEmpty) {
-              Navigator.pop(dialogContext, questionController.text.trim());
-            }
-          }, child: const Text('شروع یادگیری')),
-        ],
-      ),
-    );
-    Future<void>.delayed(const Duration(milliseconds: 300), questionController.dispose);
-    if (result == null || !mounted) return;
-    var stage = 0;
+    final controller = TextEditingController();
+    final topic = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('مربی آموزشی قدم‌به‌قدم'),
+      content: TextField(controller: controller, minLines: 2, maxLines: 5,
+        decoration: const InputDecoration(labelText: 'سؤال یا مبحث')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+        FilledButton(onPressed: () {
+          if (controller.text.trim().isNotEmpty) Navigator.pop(dialogContext, controller.text.trim());
+        }, child: const Text('شروع یادگیری')),
+      ],
+    ));
+    Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
+    if (topic == null || !mounted) return;
     var aiAnswer = '';
     var baseUrl = _advisorApiBaseUrl.trim();
-    while (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-    }
+    while (baseUrl.endsWith('/')) { baseUrl = baseUrl.substring(0, baseUrl.length - 1); }
     if (baseUrl.isNotEmpty) {
       try {
-        final response = await http.post(
-          Uri.parse('$baseUrl/api/advice'),
+        final response = await http.post(Uri.parse('$baseUrl/api/advice'),
           headers: const {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'stage': _stage,
-            'goal': _goal,
-            'question': 'مثل مربی آموزشی مرحله‌به‌مرحله عمل کن. ابتدا یک سرنخ کوتاه بده، سپس روش را مرحله‌ای توضیح بده و در پایان یک سؤال برای بررسی فهم بپرس. مبحث: $result',
-          }),
-        ).timeout(const Duration(seconds: 35));
+          body: jsonEncode({'stage': _stage, 'goal': _goal,
+            'question': 'به صورت مربی قدم‌به‌قدم پاسخ بده: ابتدا سرنخ، سپس توضیح مرحله‌ای و در پایان یک سؤال برای سنجش فهم. مبحث: $topic'}))
+          .timeout(const Duration(seconds: 35));
         if (response.statusCode == 200) {
           final payload = jsonDecode(response.body);
-          if (payload is Map<String, dynamic> && payload['answer'] is String) {
-            aiAnswer = payload['answer'] as String;
-          }
+          if (payload is Map<String, dynamic> && payload['answer'] is String) aiAnswer = payload['answer'] as String;
         }
-      } catch (_) {
-        aiAnswer = '';
-      }
+      } catch (_) { aiAnswer = ''; }
     }
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final offlineHint = 'ابتدا مسئله را به بخش‌های کوچک تقسیم کن و مشخص کن چه چیزی را می‌دانی و چه چیزی را باید پیدا کنی.\n\nسرنخ: برای «$result» یک مثال ساده بساز و قبل از دیدن پاسخ، روش خودت را توضیح بده.';
-          final explanation = aiAnswer.isEmpty
-            ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر پاسخ اشتباه شد، مشخص کن اشتباه از فهم مفهوم بوده یا از محاسبه.'
-            : aiAnswer;
-          return AlertDialog(
-            title: Text(stage == 0 ? 'گام ۱ · سرنخ' : stage == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
-            content: SingleChildScrollView(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stage == 0) Text(offlineHint, style: const TextStyle(height: 1.8))
-                else if (stage == 1) Text(explanation, style: const TextStyle(height: 1.8))
-                else const Text('بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی، دوباره به گام توضیح برگرد.', style: TextStyle(height: 1.8)),
-                const SizedBox(height: 10),
-                Text('مبحث: $result', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
-                if (aiAnswer.isEmpty) const Text('این راهنمای عمومی آفلاین است؛ سرویس هوش مصنوعی تنظیم نشده یا در دسترس نبود.', style: TextStyle(color: Colors.black54, fontSize: 11)),
-              ],
-            )),
-            actions: [
-              if (stage > 0) TextButton(onPressed: () => setDialogState(() => stage--), child: const Text('گام قبل')),
-              if (stage < 2) FilledButton(onPressed: () => setDialogState(() => stage++),
-                child: Text(stage == 0 ? 'دیدن توضیح' : 'بررسی یادگیری')),
-              if (stage == 2) FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('پایان')),
-            ],
-          );
-        },
-      ),
-    );
+    var step = 0;
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final hint = 'ابتدا مسئله را به بخش‌های کوچک تقسیم کن. سرنخ: برای «$topic» یک مثال ساده بساز و پیش از دیدن پاسخ، روش خودت را توضیح بده.';
+        final explanation = aiAnswer.isEmpty
+          ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر اشتباه شد، علت آن را مشخص کن.'
+          : aiAnswer;
+        return AlertDialog(
+          title: Text(step == 0 ? 'گام ۱ · سرنخ' : step == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
+          content: SingleChildScrollView(child: Text(step == 0 ? hint : step == 1 ? explanation :
+            'بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی به گام قبل برگرد.',
+            style: const TextStyle(height: 1.8))),
+          actions: [
+            if (step > 0) TextButton(onPressed: () => setDialogState(() => step--), child: const Text('گام قبل')),
+            if (step < 2) FilledButton(onPressed: () => setDialogState(() => step++),
+              child: Text(step == 0 ? 'دیدن توضیح' : 'بررسی یادگیری')),
+            if (step == 2) FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('پایان')),
+          ],
+        );
+      },
+    ));
   }
 
   Widget _studyProgressSection() {
@@ -1000,15 +950,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 Expanded(child: tasks.isEmpty
                   ? const Text('کاری زمان‌بندی نشده', style: TextStyle(color: Colors.black45, fontSize: 12))
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: tasks.map((entry) =>
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 3),
-                        child: Row(children: [
-                          Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
-                            size: 14, color: const Color(0xFF287D72)),
-                          const SizedBox(width: 5),
-                          Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
-                        ]),
-                      )).toList())),
+                      Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(children: [
+                        Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
+                          size: 14, color: const Color(0xFF287D72)),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
+                      ]))).toList())),
               ]));
           }),
         const SizedBox(height: 4),
@@ -1041,7 +988,8 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       const SizedBox(height: 12),
       _adaptivePlanCard(),
       const SizedBox(height: 12),
-      OutlinedButton.icon(onPressed: _openStepTutor, icon: const Icon(Icons.school_outlined), label: const Text('مربی آموزشی قدم‌به‌قدم')),
+      OutlinedButton.icon(onPressed: _openStepTutor,
+        icon: const Icon(Icons.school_outlined), label: const Text('مربی آموزشی قدم‌به‌قدم')),
       const SizedBox(height: 16),
       Container(padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
@@ -1523,40 +1471,3 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       Expanded(child:Text('برنامه‌ها و یادداشت‌ها روی همین دستگاه ذخیره می‌شوند. اگر اتصال هوش مصنوعی در نسخه نصب‌شده فعال باشد، پرسش برای پاسخ‌گویی به سرور ارسال می‌شود؛ اطلاعات حساس وارد نکنید. تصمیم‌های مهم آموزشی را با خانواده و مشاور مدرسه نیز بررسی کنید.',style:TextStyle(height:1.7,color:Color(0xFF76520F),fontSize:12))),
     ]));
 }
-), '')}/api/advice'),
-          headers: const {'Content-Type': 'application/json'},
-          body: jsonEncode({'stage': _stage, 'goal': _goal,
-            'question': 'مثل یک مربی آموزشی مرحله‌به‌مرحله عمل کن. سؤال را یکجا حل نکن. ابتدا یک سرنخ کوتاه بده، سپس روش حل را مرحله‌ای توضیح بده و در پایان یک سؤال کوتاه برای بررسی فهم بپرس. مبحث: $result'}),
-        ).timeout(const Duration(seconds: 35));
-        if (response.statusCode == 200) {
-          final payload = jsonDecode(response.body);
-          if (payload is Map<String, dynamic> && payload['answer'] is String) aiAnswer = payload['answer'] as String;
-        }
-      } catch (_) {}
-    }
-    if (!mounted) return;
-    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final offlineHint = 'ابتدا مسئله را به بخش‌های کوچک تقسیم کن و مشخص کن چه چیزی را می‌دانی و چه چیزی را باید پیدا کنی.\n\nسرنخ: برای «$result» یک مثال ساده بساز و قبل از دیدن پاسخ، روش خودت را توضیح بده.';
-        final explanation = aiAnswer.isEmpty
-          ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر پاسخ اشتباه شد، مشخص کن اشتباه از فهم مفهوم بوده یا از محاسبه.'
-          : aiAnswer;
-        return AlertDialog(
-          title: Text(stage == 0 ? 'گام ۱ · سرنخ' : stage == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
-          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (stage == 0) Text(offlineHint, style: const TextStyle(height: 1.8))
-            else if (stage == 1) Text(explanation, style: const TextStyle(height: 1.8))
-            else const Text('بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی، دوباره به گام توضیح برگرد.', style: TextStyle(height: 1.8)),
-            const SizedBox(height: 10),
-            Text('مبحث: $result', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
-            if (aiAnswer.isEmpty) const Text('این راهنمای عمومی آفلاین است؛ سرویس هوش مصنوعی تنظیم نشده یا در دسترس نبود.', style: TextStyle(color: Colors.black54, fontSize: 11)),
-          ])),
-          actions: [
-            if (stage > 0) TextButton(onPressed: () => setDialogState(() => stage--), child: const Text('گام قبل')),
-            if (stage < 2) FilledButton(onPressed: () => setDialogState(() => stage++),
-              child: Text(stage == 0 ? 'دیدن توضیح' : 'بررسی یادگیری')),
-            if (stage == 2) FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('پایان')),
-          ],
-        );
-      }));
-  }
