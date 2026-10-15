@@ -134,6 +134,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _notesController = TextEditingController();
   final List<String> _studyTasks = [];
   final Set<int> _completedTasks = {};
+  final List<Map<String, String>> _exams = [];
   bool _localDataLoaded = false;
   String _stage = 'متوسطه اول';
   String _goal = 'برنامه‌ریزی درسی';
@@ -162,6 +163,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ..addAll((prefs.getStringList('completed_tasks') ?? [])
           .map(int.tryParse).whereType<int>());
       _notesController.text = prefs.getString('study_notes') ?? '';
+      _exams
+        ..clear()
+        ..addAll((jsonDecode(prefs.getString('study_exams') ?? '[]') as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map((exam) => exam.map((key, value) => MapEntry(key, value.toString()))));
       _localDataLoaded = true;
     });
   }
@@ -174,6 +180,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     await prefs.setStringList('completed_tasks',
       _completedTasks.map((index) => index.toString()).toList());
     await prefs.setString('study_notes', _notesController.text);
+    await prefs.setString('study_exams', jsonEncode(_exams));
   }
 
   Future<void> _clearSavedData() async {
@@ -199,6 +206,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _goal = 'برنامه‌ریزی درسی';
       _studyTasks.clear();
       _completedTasks.clear();
+      _exams.clear();
       _notesController.clear();
       _answer = null;
     });
@@ -305,11 +313,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.fromLTRB(18,18,18,28),child:_privacyNote())),
     ]) : _secondaryPage()),
     bottomNavigationBar: NavigationBar(
-      selectedIndex: ['خانه','برنامه من','یادداشت‌ها','پروفایل'].indexOf(_tab),
-      onDestinationSelected:(i)=>setState(()=>_tab=['خانه','برنامه من','یادداشت‌ها','پروفایل'][i]),
+      selectedIndex: ['خانه','برنامه من','آزمون‌ها','یادداشت‌ها','پروفایل'].indexOf(_tab),
+      onDestinationSelected:(i)=>setState(()=>_tab=['خانه','برنامه من','آزمون‌ها','یادداشت‌ها','پروفایل'][i]),
       destinations: const [
         NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'خانه'),
         NavigationDestination(icon:Icon(Icons.event_note_outlined),label:'برنامه من'),
+        NavigationDestination(icon:Icon(Icons.event_available_outlined),label:'آزمون‌ها'),
         NavigationDestination(icon:Icon(Icons.bookmark_border),label:'یادداشت‌ها'),
         NavigationDestination(icon:Icon(Icons.person_outline),label:'پروفایل'),
       ],
@@ -419,6 +428,187 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ],
   );
 
+  Future<void> _addExam() async {
+    final subjectController = TextEditingController();
+    final scoreController = TextEditingController();
+    DateTime examDate = DateTime.now().add(const Duration(days: 7));
+    String? validationMessage;
+    final exam = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('ثبت آزمون'),
+          content: SingleChildScrollView(child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(controller: subjectController, autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'نام درس یا آزمون',
+                  hintText: 'مثلاً: ریاضی فصل سوم')),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final selected = await showDatePicker(
+                    context: dialogContext,
+                    initialDate: examDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    helpText: 'تاریخ آزمون را انتخاب کن',
+                  );
+                  if (selected != null) {
+                    setDialogState(() {
+                      examDate = selected;
+                      validationMessage = null;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: Text('تاریخ: ${examDate.year}/${examDate.month.toString().padLeft(2, '0')}/${examDate.day.toString().padLeft(2, '0')}'),
+              ),
+              const SizedBox(height: 8),
+              TextField(controller: scoreController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'نمره (اختیاری از ۲۰)',
+                  hintText: 'مثلاً ۱۷٫۵')),
+              if (validationMessage != null) ...[
+                const SizedBox(height: 8),
+                Text(validationMessage!, style: const TextStyle(color: Colors.red)),
+              ],
+            ],
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('انصراف')),
+            FilledButton(
+              onPressed: () {
+                final subject = subjectController.text.trim();
+                final scoreText = scoreController.text.trim();
+                final score = scoreText.isEmpty ? null : double.tryParse(scoreText);
+                if (subject.isEmpty) {
+                  setDialogState(() => validationMessage = 'نام درس یا آزمون را وارد کن.');
+                  return;
+                }
+                if (scoreText.isNotEmpty && (score == null || score < 0 || score > 20)) {
+                  setDialogState(() => validationMessage = 'نمره باید عددی بین صفر تا ۲۰ باشد.');
+                  return;
+                }
+                Navigator.pop(dialogContext, {
+                  'subject': subject,
+                  'date': examDate.toIso8601String(),
+                  'score': score == null ? '' : score.toString(),
+                });
+              },
+              child: const Text('ذخیره آزمون'),
+            ),
+          ],
+        ),
+      ),
+    );
+    subjectController.dispose();
+    scoreController.dispose();
+    if (exam == null || !mounted) return;
+    setState(() => _exams.add(exam));
+    await _saveData();
+  }
+
+  Widget _examsPage() {
+    final sortedExams = [..._exams]
+      ..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
+    final scored = _exams.where((exam) => (double.tryParse(exam['score'] ?? '') ?? -1) >= 0).toList();
+    final average = scored.isEmpty ? null : scored
+      .map((exam) => double.parse(exam['score']!))
+      .reduce((a, b) => a + b) / scored.length;
+    return ListView(padding: const EdgeInsets.fromLTRB(18,18,18,28), children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        const Expanded(child: Text('آزمون‌ها و نتیجه‌ها',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      const Text('تاریخ آزمون‌ها را ثبت کن تا زمان باقی‌مانده و نتیجه‌ها را یکجا ببینی.',
+        style: TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 16),
+      if (!_localDataLoaded) const LinearProgressIndicator(),
+      if (_exams.isNotEmpty) Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: const Color(0xFFE3F2ED),
+          borderRadius: BorderRadius.circular(18)),
+        child: Row(children: [
+          const Icon(Icons.insights_rounded, color: Color(0xFF287D72), size: 30),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${_exams.length} آزمون ثبت‌شده',
+              style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(average == null ? 'هنوز نمره‌ای ثبت نشده است'
+              : 'میانگین نمره‌های ثبت‌شده: ${average.toStringAsFixed(1)} از ۲۰',
+              style: const TextStyle(height: 1.6)),
+          ])),
+        ]),
+      ),
+      const SizedBox(height: 14),
+      FilledButton.icon(onPressed: _localDataLoaded ? _addExam : null,
+        icon: const Icon(Icons.add_circle_outline_rounded),
+        label: const Padding(padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text('افزودن آزمون یا امتحان'))),
+      const SizedBox(height: 12),
+      if (_exams.isEmpty) Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: const Column(children: [
+          Icon(Icons.event_available_outlined, size: 38, color: Color(0xFF287D72)),
+          SizedBox(height: 8),
+          Text('هنوز آزمونی ثبت نشده است',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+          SizedBox(height: 5),
+          Text('امتحان مدرسه، آزمون آزمایشی یا موعد مهم بعدی را اضافه کن.',
+            textAlign: TextAlign.center, style: TextStyle(height: 1.7)),
+        ]),
+      ) else ...sortedExams.map((exam) {
+        final date = DateTime.parse(exam['date']!);
+        final today = DateTime.now();
+        final days = DateTime(date.year, date.month, date.day)
+          .difference(DateTime(today.year, today.month, today.day)).inDays;
+        final countdown = days < 0 ? 'تاریخ آزمون گذشته است'
+          : days == 0 ? 'آزمون امروز است'
+          : 'تا آزمون $days روز مانده';
+        final score = exam['score'] ?? '';
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFFDCEFEA),
+              child: Icon(days < 0 ? Icons.check_circle_outline : Icons.event_note,
+                color: const Color(0xFF287D72))),
+            title: Text(exam['subject']!, style: const TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Padding(padding: const EdgeInsets.only(top: 6),
+              child: Text('${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}  •  $countdown'
+                '${score.isEmpty ? '' : '\\nنمره: $score از ۲۰'}',
+                style: const TextStyle(height: 1.6))),
+            isThreeLine: score.isNotEmpty,
+            trailing: IconButton(
+              tooltip: 'حذف آزمون',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () {
+                setState(() => _exams.remove(exam));
+                _saveData();
+              },
+            ),
+          ),
+        );
+      }),
+      const SizedBox(height: 10),
+      const Text('این اطلاعات فقط روی همین دستگاه نگهداری می‌شود؛ تاریخ و نمره را خودت ثبت می‌کنی و اپ به سامانهٔ رسمی مدرسه یا آزمون متصل نیست.',
+        style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.7)),
+    ]);
+  }
+
   Widget _notesPage() => ListView(padding: const EdgeInsets.fromLTRB(18,18,18,28), children: [
     Row(children: [
       IconButton(onPressed: () => setState(() => _tab = 'خانه'),
@@ -442,6 +632,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
 
   Widget _secondaryPage() {
     if (_tab == 'برنامه من') return _studyPlannerPage();
+    if (_tab == 'آزمون‌ها') return _examsPage();
     if (_tab == 'یادداشت‌ها') return _notesPage();
     final details = switch (_tab) {
       'برنامه من' => ('برنامهٔ درسی من', 'برنامه‌ریزی متناسب با زمان و هدف شما', Icons.calendar_month_rounded,
