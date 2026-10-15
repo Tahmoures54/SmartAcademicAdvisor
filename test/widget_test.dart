@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart' show EditableText;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({});
   testWidgets('shows academic stages and guidance form', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     expect(find.text('همراه تحصیلی'), findsOneWidget);
@@ -58,5 +60,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
     expect(find.text('0 از 1 انجام‌شده'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('study_tasks'), contains('مرور فصل دوم علوم'));
   });
 }
