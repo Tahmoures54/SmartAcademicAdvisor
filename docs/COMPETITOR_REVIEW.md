@@ -20,7 +20,7 @@ The app should be a practical, Persian-first study companion rather than a gener
 ## Implemented from this review
 
 - **Exam tracker:** locally stores exam name/date, shows a countdown, optionally records a score from 0–20, and calculates the average of recorded scores.
-- **Focus timer:** a 25-minute timer with start, pause and reset, available without internet.
+- **Focus timer:** a 25-minute timer with start, pause and reset, available without internet.\n- **Subject progress log:** record study minutes and a self-rated confidence score per subject; see total study time, session count and per-subject average confidence. Records are stored locally and can be cleared.
 - Existing local task planner, completion state, study-method self-assessment and on-device notes remain available.
 
 ## Recommended next steps
