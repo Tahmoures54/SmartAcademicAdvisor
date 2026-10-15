@@ -84,6 +84,23 @@ void main() {
     expect(prefs.getString('study_exams'), contains('ریاضی'));
   });
 
+  testWidgets('study progress records minutes and subject confidence locally', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.tap(find.text('برنامه من').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ثبت جلسهٔ مطالعه'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).at(0), 'ریاضی');
+    await tester.enterText(find.byType(EditableText).at(1), '35');
+    await tester.tap(find.text('ثبت مطالعه'));
+    await tester.pumpAndSettle();
+    expect(find.text('ریاضی'), findsOneWidget);
+    expect(find.text('35 دقیقه · تسلط 3.0/5'), findsOneWidget);
+    expect(find.text('35 دقیقه'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('study_sessions'), contains('ریاضی'));
+  });
+
   testWidgets('bottom navigation opens the study plan page', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     await tester.tap(find.text('برنامه من').last);
