@@ -758,6 +758,34 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     await _saveData();
   }
 
+  void _createReviewPlan(Map<String, String> exam) {
+    final subject = exam['subject'] ?? 'درس';
+    final date = DateTime.parse(exam['date']!);
+    final today = DateTime.now();
+    final daysRemaining = DateTime(date.year, date.month, date.day)
+      .difference(DateTime(today.year, today.month, today.day)).inDays;
+    if (daysRemaining < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تاریخ این آزمون گذشته است؛ می‌توانی کار مرور را دستی اضافه کنی.')),
+      );
+      return;
+    }
+    final tasks = [
+      'مرور خلاصه‌ها و نکته‌های $subject',
+      'حل چند سؤال تمرینی از $subject',
+      'تحلیل اشتباه‌ها و مرور نهایی $subject',
+    ];
+    setState(() {
+      for (final task in tasks) {
+        if (!_studyTasks.contains(task)) _studyTasks.add(task);
+      }
+      _tab = 'برنامه من';
+    });
+    _saveData();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('سه گام مرور برای $subject به برنامه اضافه شد.')),
+    );
+  }
   Widget _examsPage() {
     final sortedExams = [..._exams]
       ..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
@@ -833,10 +861,19 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 color: const Color(0xFF287D72))),
             title: Text(exam['subject']!, style: const TextStyle(fontWeight: FontWeight.w800)),
             subtitle: Padding(padding: const EdgeInsets.only(top: 6),
-              child: Text('${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}  •  $countdown'
-                '${score.isEmpty ? '' : '\nنمره: $score از ۲۰'}',
-                style: const TextStyle(height: 1.6))),
-            isThreeLine: score.isNotEmpty,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}  •  $countdown'
+                  '${score.isEmpty ? '' : '\nنمره: $score از ۲۰'}',
+                  style: const TextStyle(height: 1.6)),
+                if (days >= 0)
+                  TextButton.icon(
+                    onPressed: () => _createReviewPlan(exam),
+                    icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+                    label: const Text('ساخت برنامهٔ مرور'),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  ),
+              ])),
+            isThreeLine: true,
             trailing: IconButton(
               tooltip: 'حذف آزمون',
               icon: const Icon(Icons.delete_outline_rounded),
