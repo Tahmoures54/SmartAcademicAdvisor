@@ -146,6 +146,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('گزارش هفتگی پیشرفت'), findsOneWidget);
     expect(find.text('مرور فاصله‌دار و نقاط ضعف'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('نقشهٔ تسلط و اولویت یادگیری'), 300,
+      scrollable: find.byType(Scrollable).first);
+    expect(find.text('نقشهٔ تسلط و اولویت یادگیری'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
       scrollable: find.byType(Scrollable).first);
     expect(find.text('ساخت برنامهٔ پیشنهادی'), findsOneWidget);
