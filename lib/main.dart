@@ -134,6 +134,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _notesController = TextEditingController();
   final List<String> _studyTasks = [];
   final Set<int> _completedTasks = {};
+  bool _localDataLoaded = false;
   String _stage = 'متوسطه اول';
   String _goal = 'برنامه‌ریزی درسی';
   String _tab = 'خانه';
@@ -161,6 +162,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ..addAll((prefs.getStringList('completed_tasks') ?? [])
           .map(int.tryParse).whereType<int>());
       _notesController.text = prefs.getString('study_notes') ?? '';
+      _localDataLoaded = true;
     });
   }
 
@@ -316,7 +318,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
 
   void _addStudyTask() {
     final task = _newTaskController.text.trim();
-    if (task.isEmpty) return;
+    if (!_localDataLoaded || task.isEmpty) return;
     setState(() {
       _studyTasks.add(task);
       _newTaskController.clear();
@@ -342,7 +344,10 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFE2EAE6))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (!_localDataLoaded)
+            const Padding(padding: EdgeInsets.only(bottom: 10), child: LinearProgressIndicator()),
           TextField(controller: _newTaskController,
+            enabled: _localDataLoaded,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _addStudyTask(),
             decoration: InputDecoration(
@@ -351,7 +356,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: _addStudyTask,
+          FilledButton.icon(onPressed: _localDataLoaded ? _addStudyTask : null,
             icon: const Icon(Icons.add_task_rounded), label: const Text('افزودن به برنامه')),
         ]),
       ),
@@ -424,12 +429,13 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     const SizedBox(height: 8),
     const Text('نکته‌ها، هدف‌ها یا پرسش‌هایی را که می‌خواهی بعداً مرور کنی اینجا بنویس.', style: TextStyle(height: 1.7, color: Colors.black54)),
     const SizedBox(height: 18),
-    TextField(controller: _notesController, minLines: 8, maxLines: 18,
+    if (!_localDataLoaded) const LinearProgressIndicator(),
+    TextField(controller: _notesController, enabled: _localDataLoaded, minLines: 8, maxLines: 18,
       onChanged: (_) => _saveData(),
       decoration: InputDecoration(hintText: 'یادداشت تحصیلی شما…', filled: true, fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)))),
     const SizedBox(height: 12),
-    FilledButton.icon(onPressed: _saveData, icon: const Icon(Icons.save_outlined), label: const Text('ذخیرهٔ یادداشت')),
+    FilledButton.icon(onPressed: _localDataLoaded ? _saveData : null, icon: const Icon(Icons.save_outlined), label: const Text('ذخیرهٔ یادداشت')),
     const SizedBox(height: 8),
     const Text('یادداشت‌ها فقط در حافظهٔ محلی این دستگاه ذخیره می‌شوند و همگام‌سازی ابری ندارند.', style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.7)),
   ]);
