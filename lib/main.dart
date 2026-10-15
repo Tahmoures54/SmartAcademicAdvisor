@@ -141,6 +141,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final Map<String, String> _taskDueDates = {};
   final List<Map<String, String>> _exams = [];
   final List<Map<String, String>> _studySessions = [];
+  final List<Map<String, String>> _reviewCards = [];
   bool _localDataLoaded = false;
   Timer? _focusTimer;
   int _focusSecondsRemaining = 25 * 60;
@@ -186,6 +187,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ..addAll((jsonDecode(prefs.getString('study_sessions') ?? '[]') as List<dynamic>)
           .whereType<Map<String, dynamic>>()
           .map((session) => session.map((key, value) => MapEntry(key, value.toString()))));
+      _reviewCards
+        ..clear()
+        ..addAll((jsonDecode(prefs.getString('study_review_cards') ?? '[]') as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map((card) => card.map((key, value) => MapEntry(key, value.toString()))));
       _localDataLoaded = true;
     });
   }
@@ -201,6 +207,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     await prefs.setString('study_notes', _notesController.text);
     await prefs.setString('study_exams', jsonEncode(_exams));
     await prefs.setString('study_sessions', jsonEncode(_studySessions));
+    await prefs.setString('study_review_cards', jsonEncode(_reviewCards));
   }
 
   Future<void> _clearSavedData() async {
@@ -229,6 +236,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _taskDueDates.clear();
       _exams.clear();
       _studySessions.clear();
+      _reviewCards.clear();
       _notesController.clear();
       _answer = null;
     });
@@ -494,6 +502,1002 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     await _saveData();
   }
 
+
+  DateTime _dayOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+
+  Widget _weeklyProgressReport() {
+    final now = DateTime.now();
+    final today = _dayOnly(now);
+    final startThisWeek = today.subtract(Duration(days: today.weekday - 1));
+    final startLastWeek = startThisWeek.subtract(const Duration(days: 7));
+    int minutesIn(DateTime start, DateTime end) => _studySessions.where((session) {
+      final date = DateTime.tryParse(session['date'] ?? '');
+      return date != null && !date.isBefore(start) && date.isBefore(end);
+    }).fold<int>(0, (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
+    final thisWeek = minutesIn(startThisWeek, startThisWeek.add(const Duration(days: 7)));
+    final lastWeek = minutesIn(startLastWeek, startThisWeek);
+    final difference = thisWeek - lastWeek;
+    final completion = _studyTasks.isEmpty ? 0 : ((_completedTasks.length / _studyTasks.length) * 100).round();
+    final completedLabel = '${_completedTasks.length} از ${_studyTasks.length}';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Row(children: [
+          Icon(Icons.query_stats_rounded, color: Color(0xFF287D72)),
+          SizedBox(width: 8),
+          Expanded(child: Text('گزارش هفتگی پیشرفت', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
+        ]),
+        const SizedBox(height: 6),
+        Text('این هفته: $thisWeek دقیقه مطالعه', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 5),
+        Text('هفتهٔ قبل: $lastWeek دقیقه · ${difference > 0 ? 'افزایش' : difference < 0 ? 'کاهش' : 'بدون تغییر'} ${difference.abs()} دقیقه',
+          style: TextStyle(color: difference > 0 ? const Color(0xFF287D72) : Colors.black54)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _progressMetric('کارهای انجام‌شده', completedLabel)),
+          const SizedBox(width: 10),
+          Expanded(child: _progressMetric('پیشرفت برنامه', '$completion٪')),
+        ]),
+        const SizedBox(height: 8),
+        ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(
+          value: completion / 100, minHeight: 7, color: const Color(0xFF287D72),
+          backgroundColor: const Color(0xFFE3F2ED))),
+        const SizedBox(height: 6),
+        const Text('مقایسهٔ زمان مطالعه بر اساس تاریخ ثبت جلسه‌هاست؛ درصد کارها، وضعیت فعلی برنامه را نشان می‌دهد.',
+          style: TextStyle(color: Colors.black54, fontSize: 11, height: 1.5)),
+      ]),
+    );
+  }
+
+  Widget _reviewPracticeSection() {
+    final now = _dayOnly(DateTime.now());
+    final dueCards = _reviewCards.where((card) {
+      final due = DateTime.tryParse(card['due'] ?? '');
+      return due == null || !due.isAfter(now);
+    }).toList();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Icon(Icons.psychology_alt_outlined, color: Color(0xFF287D72)),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('مرور فاصله‌دار و نقاط ضعف', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
+          Text('${dueCards.length} مرور', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
+        ]),
+        const SizedBox(height: 6),
+        const Text('یک سؤال و پاسخ کوتاه ثبت کن. پاسخ‌های سخت‌تر زودتر و پاسخ‌های مطمئن با فاصلهٔ بیشتر مرور می‌شوند؛ داده‌ها فقط روی همین گوشی می‌مانند.',
+          style: TextStyle(color: Colors.black54, height: 1.6, fontSize: 12)),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(onPressed: _localDataLoaded ? _addReviewCard : null,
+          icon: const Icon(Icons.add_rounded), label: const Text('افزودن سؤال برای مرور')),
+        if (_reviewCards.isEmpty)
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('هنوز کارتی برای مرور نساخته‌ای.', textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54)))
+        else ...[
+          const SizedBox(height: 8),
+          ..._reviewCards.take(4).map((card) {
+            final due = DateTime.tryParse(card['due'] ?? '');
+            final isDue = due == null || !due.isAfter(now);
+            return Card(color: isDue ? const Color(0xFFEAF5F1) : const Color(0xFFF7F9F8),
+              child: ListTile(
+                title: Text(card['prompt'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text('${card['subject'] ?? 'درس'} · ${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: ${due.year}/${due.month}/${due.day}'}'),
+                trailing: IconButton(tooltip: 'مرور سؤال', icon: const Icon(Icons.play_circle_outline_rounded),
+                  onPressed: () => _reviewOneCard(card)),
+              ));
+          }),
+        ],
+      ]),
+    );
+  }
+
+  Future<void> _addReviewCard() async {
+    final subject = TextEditingController();
+    final prompt = TextEditingController();
+    final answer = TextEditingController();
+    final result = await showDialog<Map<String, String>>(context: context, builder: (dialogContext) =>
+      AlertDialog(title: const Text('ساخت کارت مرور'),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: subject, decoration: const InputDecoration(labelText: 'نام درس')),
+          TextField(controller: prompt, decoration: const InputDecoration(labelText: 'سؤال یا نکتهٔ مهم')),
+          TextField(controller: answer, minLines: 2, maxLines: 4, decoration: const InputDecoration(labelText: 'پاسخ یا توضیح کوتاه')),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+          FilledButton(onPressed: () {
+            if (subject.text.trim().isEmpty || prompt.text.trim().isEmpty || answer.text.trim().isEmpty) return;
+            Navigator.pop(dialogContext, {'subject': subject.text.trim(), 'prompt': prompt.text.trim(),
+              'answer': answer.text.trim(), 'due': DateTime.now().toIso8601String(), 'interval': '0', 'correct': '0', 'wrong': '0'});
+          }, child: const Text('ذخیره کارت')),
+        ]));
+    Future<void>.delayed(const Duration(milliseconds: 300), () { subject.dispose(); prompt.dispose(); answer.dispose(); });
+    if (result == null || !mounted) return;
+    setState(() => _reviewCards.add(result));
+    await _saveData();
+  }
+
+  Future<void> _reviewOneCard(Map<String, String> card) async {
+    var revealed = false;
+    final grade = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text(card['subject'] ?? 'مرور'),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(card['prompt'] ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.6)),
+          const SizedBox(height: 14),
+          if (!revealed) OutlinedButton.icon(onPressed: () => setDialogState(() => revealed = true),
+            icon: const Icon(Icons.visibility_outlined), label: const Text('نمایش پاسخ'))
+          else Container(width: double.infinity, padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(12)),
+            child: Text(card['answer'] ?? '', style: const TextStyle(height: 1.7))),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('بعداً')),
+          if (revealed) TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('سخت بود')),
+          if (revealed) FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('بلد بودم')),
+        ],
+      )));
+    if (grade == null || !mounted) return;
+    final index = _reviewCards.indexOf(card);
+    if (index < 0) return;
+    final previous = int.tryParse(card['interval'] ?? '0') ?? 0;
+    final nextInterval = grade ? (previous == 0 ? 1 : previous == 1 ? 3 : (previous * 2).clamp(1, 60)) : 1;
+    final due = DateTime.now().add(Duration(days: nextInterval));
+    setState(() {
+      card['interval'] = nextInterval.toString();
+      card['due'] = due.toIso8601String();
+      card[grade ? 'correct' : 'wrong'] = ((int.tryParse(card[grade ? 'correct' : 'wrong'] ?? '0') ?? 0) + 1).toString();
+    });
+    await _saveData();
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(grade ? 'آفرین؛ مرور بعدی ${due.year}/${due.month}/${due.day} است.' : 'اشکالی ندارد؛ این سؤال فردا دوباره مرور می‌شود.')));
+  }
+
+  Widget _adaptivePlanCard() => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: const Color(0xFFEAF5F1), borderRadius: BorderRadius.circular(20)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Row(children: [Icon(Icons.auto_awesome_rounded, color: Color(0xFF287D72)),
+        SizedBox(width: 8), Expanded(child: Text('برنامهٔ روزانهٔ متناسب با امتحان', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)))]),
+      const SizedBox(height: 6),
+      const Text('تاریخ نزدیک‌ترین امتحان، درس‌هایی که تسلط کمتری در آن‌ها ثبت کرده‌ای و زمان آزاد روزانه را در برنامه لحاظ کن.',
+        style: TextStyle(height: 1.6, fontSize: 12)),
+      const SizedBox(height: 10),
+      FilledButton.icon(onPressed: _localDataLoaded ? _buildAdaptivePlan : null,
+        icon: const Icon(Icons.event_repeat_rounded), label: const Text('ساخت برنامهٔ پیشنهادی')),
+    ]),
+  );
+
+  Future<void> _buildAdaptivePlan() async {
+    final minutesController = TextEditingController(text: '90');
+    final availableExams = _exams.where((exam) {
+      final date = DateTime.tryParse(exam['date'] ?? '');
+      return date != null && !_dayOnly(date).isBefore(_dayOnly(DateTime.now()));
+    }).toList()..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
+    final weakest = <String, double>{};
+    for (final session in _studySessions) {
+      final confidence = double.tryParse(session['confidence'] ?? '3') ?? 3;
+      final subject = session['subject'] ?? '';
+      if (subject.isNotEmpty) {
+        final prior = weakest[subject];
+        weakest[subject] = prior == null ? confidence : (prior + confidence) / 2;
+      }
+    }
+    final result = await showDialog<int>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('زمان آزاد روزانه'),
+      content: TextField(controller: minutesController, keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'دقیقه در روز', helperText: 'مثلاً ۹۰ دقیقه؛ برنامه واقع‌بینانه بماند.')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+        FilledButton(onPressed: () {
+          final value = int.tryParse(minutesController.text.trim());
+          if (value != null && value >= 15 && value <= 720) Navigator.pop(dialogContext, value);
+        }, child: const Text('ساخت برنامه')),
+      ]));
+    Future<void>.delayed(const Duration(milliseconds: 300), minutesController.dispose);
+    if (result == null || !mounted) return;
+    final exam = availableExams.isEmpty ? null : availableExams.first;
+    var subject = exam?['subject'] ?? '';
+    if (weakest.isNotEmpty) {
+      final weakestSubject = weakest.entries.toList()..sort((a, b) => a.value.compareTo(b.value));
+      if (subject.isEmpty || (weakest[subject] ?? 5) > weakestSubject.first.value) subject = weakestSubject.first.key;
+    }
+    if (subject.isEmpty) subject = 'درس انتخابی';
+    final today = _dayOnly(DateTime.now());
+    final totalMinutes = result;
+    final tasks = [
+      ('یادآوری و مرور فعال $subject', (totalMinutes * .3).round()),
+      ('تمرین و حل سؤال $subject', (totalMinutes * .45).round()),
+      ('تحلیل اشتباه‌ها و جمع‌بندی $subject', (totalMinutes * .25).round()),
+    ];
+    final deadline = exam == null ? today.add(const Duration(days: 2)) : _dayOnly(DateTime.parse(exam['date']!));
+    final availableDays = deadline.difference(today).inDays.clamp(0, 6);
+    setState(() {
+      for (var i = 0; i < tasks.length; i++) {
+        final task = '${tasks[i].$1} · ${tasks[i].$2} دقیقه';
+        if (!_studyTasks.contains(task)) _studyTasks.add(task);
+        final due = today.add(Duration(days: availableDays == 0 ? 0 : ((availableDays * i) / 2).round()));
+        _taskDueDates[task] = due.toIso8601String();
+      }
+      for (final entry in _taskDueDates.entries.toList()) {
+        final due = DateTime.tryParse(entry.value);
+        if (due != null && _dayOnly(due).isBefore(today) && !_completedTasks.contains(_studyTasks.indexOf(entry.key))) {
+          _taskDueDates[entry.key] = today.toIso8601String();
+        }
+      }
+      _tab = 'برنامه من';
+    });
+    await _saveData();
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('برنامهٔ پیشنهادی برای $subject با مجموع $totalMinutes دقیقه ساخته شد.')));
+  }
+
+  Future<void> _openStepTutor() async {
+    final questionController = TextEditingController();
+    final result = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('مربی آموزشی قدم‌به‌قدم'),
+      content: TextField(controller: questionController, minLines: 2, maxLines: 5,
+        decoration: const InputDecoration(labelText: 'سؤال یا مبحث', hintText: 'مثلاً کسرها را چطور حل کنم؟')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+        FilledButton(onPressed: () {
+          if (questionController.text.trim().isNotEmpty) Navigator.pop(dialogContext, questionController.text.trim());
+        }, child: const Text('شروع یادگیری')),
+      ]));
+    Future<void>.delayed(const Duration(milliseconds: 300), questionController.dispose);
+    if (result == null || !mounted) return;
+    var stage = 0;
+    var aiAnswer = '';
+    if (_advisorApiBaseUrl.trim().isNotEmpty) {
+      try {
+        final response = await http.post(
+          Uri.parse('${_advisorApiBaseUrl.replaceFirst(RegExp(r'/+
+    final subjects = <String, List<Map<String, String>>>{};
+    for (final session in _studySessions) {
+      subjects.putIfAbsent(session['subject']!, () => []).add(session);
+    }
+    final totalMinutes = _studySessions.fold<int>(0,
+      (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('گزارش پیشرفت درس‌ها', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        const Text('زمان مطالعه و میزان تسلطی را که خودت احساس می‌کنی ثبت کن؛ این امتیاز خودارزیابی است، نه آزمون علمی.',
+          style: TextStyle(color: Colors.black54, height: 1.7, fontSize: 12)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _progressMetric('جلسه‌های ثبت‌شده', _studySessions.length.toString())),
+          const SizedBox(width: 10),
+          Expanded(child: _progressMetric('مجموع مطالعه', '$totalMinutes دقیقه')),
+        ]),
+        const SizedBox(height: 12),
+        FilledButton.icon(onPressed: _localDataLoaded ? _addStudySession : null,
+          icon: const Icon(Icons.add_chart_rounded), label: const Text('ثبت جلسهٔ مطالعه')),
+        if (_studySessions.isEmpty) ...[
+          const SizedBox(height: 12),
+          const Text('هنوز جلسه‌ای ثبت نشده است.', textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54)),
+        ] else ...[
+          const SizedBox(height: 12),
+          ...subjects.entries.map((entry) {
+            final minutes = entry.value.fold<int>(0,
+              (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
+            final confidence = entry.value.fold<int>(0,
+              (sum, session) => sum + (int.tryParse(session['confidence'] ?? '') ?? 3)) / entry.value.length;
+            return Padding(padding: const EdgeInsets.only(bottom: 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w800))),
+                  Text('$minutes دقیقه · تسلط ${confidence.toStringAsFixed(1)}/5',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF287D72))),
+                ]),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: confidence / 5, minHeight: 6,
+                  borderRadius: BorderRadius.circular(8), color: const Color(0xFF287D72),
+                  backgroundColor: const Color(0xFFE3F2ED)),
+                Align(alignment: Alignment.centerLeft,
+                  child: Text('${entry.value.length} جلسه',
+                    style: const TextStyle(fontSize: 11, color: Colors.black54))),
+              ]),
+            );
+          }),
+          Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('حذف گزارش پیشرفت؟'),
+                  content: const Text('همهٔ جلسه‌های مطالعهٔ ثبت‌شده حذف می‌شوند.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('انصراف')),
+                    FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حذف')),
+                  ],
+                ));
+              if (confirmed == true && mounted) {
+                setState(() => _studySessions.clear());
+                await _saveData();
+              }
+            },
+            icon: const Icon(Icons.delete_outline_rounded), label: const Text('پاک‌کردن گزارش پیشرفت'))),
+        ],
+      ]),
+    );
+  }
+
+  Widget _progressMetric(String label, String value) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(14)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF287D72))),
+      const SizedBox(height: 4),
+      Text(label, style: const TextStyle(fontSize: 11, height: 1.4)),
+    ]),
+  );
+
+  Future<void> _setTaskDueDate(String task) async {
+    final existing = _taskDueDates[task];
+    final initial = existing == null ? DateTime.now().add(const Duration(days: 1)) : DateTime.parse(existing);
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(DateTime.now().subtract(const Duration(days: 365))) ? DateTime.now() : initial,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: 'موعد انجام کار را انتخاب کن',
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _taskDueDates[task] = DateTime(selected.year, selected.month, selected.day).toIso8601String());
+    await _saveData();
+  }
+
+  String _taskScheduleLabel(String task) {
+    final raw = _taskDueDates[task];
+    if (raw == null) return 'بدون موعد';
+    final date = DateTime.parse(raw);
+    final today = DateTime.now();
+    final days = DateTime(date.year, date.month, date.day).difference(DateTime(today.year, today.month, today.day)).inDays;
+    final dateText = '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+    if (_completedTasks.contains(_studyTasks.indexOf(task))) return 'انجام‌شده · $dateText';
+    if (days < 0) return 'عقب‌افتاده · $dateText';
+    if (days == 0) return 'موعد امروز · $dateText';
+    if (days == 1) return 'موعد فردا · $dateText';
+    return 'موعد $dateText · $days روز دیگر';
+  }
+  void _addStudyTask() {
+    final task = _newTaskController.text.trim();
+    if (!_localDataLoaded || task.isEmpty) return;
+    setState(() {
+      _studyTasks.add(task);
+      _newTaskController.clear();
+    });
+    _saveData();
+  }
+
+  String _weekdayName(DateTime date) => switch (date.weekday) {
+    DateTime.monday => 'دوشنبه',
+    DateTime.tuesday => 'سه‌شنبه',
+    DateTime.wednesday => 'چهارشنبه',
+    DateTime.thursday => 'پنجشنبه',
+    DateTime.friday => 'جمعه',
+    DateTime.saturday => 'شنبه',
+    _ => 'یکشنبه',
+  };
+
+  Widget _weeklyScheduleSection() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduled = _studyTasks.asMap().entries.where((entry) =>
+      _taskDueDates.containsKey(entry.value)).toList();
+    final overdue = scheduled.where((entry) {
+      final due = DateTime.parse(_taskDueDates[entry.value]!);
+      return DateTime(due.year, due.month, due.day).isBefore(today) &&
+        !_completedTasks.contains(entry.key);
+    }).toList();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.view_week_rounded, color: Color(0xFF287D72)),
+          SizedBox(width: 8),
+          Text('برنامهٔ هفت روز آینده', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        ]),
+        const SizedBox(height: 10),
+        if (overdue.isNotEmpty) ...[
+          Container(width: double.infinity, padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(12)),
+            child: Text('عقب‌افتاده (${overdue.length}) · ${overdue.map((entry) => entry.value).join('، ')}',
+              style: TextStyle(color: Colors.red.shade800, height: 1.5))),
+          const SizedBox(height: 8),
+        ],
+        for (var offset = 0; offset < 7; offset++)
+          Builder(builder: (context) {
+            final day = today.add(Duration(days: offset));
+            final tasks = scheduled.where((entry) {
+              final due = DateTime.parse(_taskDueDates[entry.value]!);
+              return due.year == day.year && due.month == day.month && due.day == day.day;
+            }).toList();
+            final dateLabel = '${day.year}/${day.month.toString().padLeft(2, '0')}/${day.day.toString().padLeft(2, '0')}';
+            return Container(margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: BoxDecoration(color: offset == 0 ? const Color(0xFFE3F2ED) : const Color(0xFFF7F9F8),
+                borderRadius: BorderRadius.circular(12)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(width: 94, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(offset == 0 ? 'امروز' : _weekdayName(day), style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(dateLabel, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                ])),
+                const SizedBox(width: 8),
+                Expanded(child: tasks.isEmpty
+                  ? const Text('کاری زمان‌بندی نشده', style: TextStyle(color: Colors.black45, fontSize: 12))
+                  : Column(crossAxisAlignment: CrossAxisAlignment.start, children: tasks.map((entry) =>
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Row(children: [
+                          Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
+                            size: 14, color: const Color(0xFF287D72)),
+                          const SizedBox(width: 5),
+                          Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
+                        ]),
+                      )).toList())),
+              ]));
+          }),
+        const SizedBox(height: 4),
+        const Text('برای زمان‌بندی هر کار، از آیکون تقویم کنار همان کار استفاده کن.',
+          style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.5)),
+      ]),
+    );
+  }
+  Widget _studyPlannerPage() => ListView(
+    padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+    children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        const Expanded(child: Text('برنامهٔ درسی من',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      const Text('کارهای درسی را ثبت کن و پس از انجام، تیک بزن.',
+        style: TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 18),
+      _focusTimerCard(),
+      const SizedBox(height: 16),
+      _studyProgressSection(),
+      const SizedBox(height: 12),
+      _weeklyProgressReport(),
+      const SizedBox(height: 12),
+      _reviewPracticeSection(),
+      const SizedBox(height: 12),
+      _adaptivePlanCard(),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(onPressed: _openStepTutor, icon: const Icon(Icons.school_outlined), label: const Text('مربی آموزشی قدم‌به‌قدم')),
+      const SizedBox(height: 16),
+      Container(padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (!_localDataLoaded)
+            const Padding(padding: EdgeInsets.only(bottom: 10), child: LinearProgressIndicator()),
+          TextField(controller: _newTaskController,
+            enabled: _localDataLoaded,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _addStudyTask(),
+            decoration: InputDecoration(
+              labelText: 'کار یا درس بعدی',
+              hintText: 'مثلاً: مرور فصل دوم علوم',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(onPressed: _localDataLoaded ? _addStudyTask : null,
+            icon: const Icon(Icons.add_task_rounded), label: const Text('افزودن به برنامه')),
+        ]),
+      ),
+      const SizedBox(height: 18),
+      Builder(builder: (context) {
+        final today = DateTime.now();
+        final overdue = _studyTasks.asMap().entries.where((entry) {
+          if (_completedTasks.contains(entry.key)) return false;
+          final raw = _taskDueDates[entry.value];
+          if (raw == null) return false;
+          final date = DateTime.parse(raw);
+          return DateTime(date.year, date.month, date.day).isBefore(DateTime(today.year, today.month, today.day));
+        }).length;
+        final dueToday = _studyTasks.asMap().entries.where((entry) {
+          if (_completedTasks.contains(entry.key)) return false;
+          final raw = _taskDueDates[entry.value];
+          if (raw == null) return false;
+          final date = DateTime.parse(raw);
+          return date.year == today.year && date.month == today.month && date.day == today.day;
+        }).length;
+        return Container(padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            Expanded(child: Text('موعد امروز: $dueToday', style: const TextStyle(fontWeight: FontWeight.w800))),
+            Expanded(child: Text('عقب‌افتاده: $overdue', style: TextStyle(fontWeight: FontWeight.w800, color: overdue > 0 ? Colors.red.shade700 : const Color(0xFF287D72)))),
+          ]));
+      }),
+      const SizedBox(height: 14),
+      _weeklyScheduleSection(),
+      const SizedBox(height: 14),
+      Row(children: [
+        const Expanded(child: Text('همهٔ کارهای درسی',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+        Text('${_completedTasks.length} از ${_studyTasks.length} انجام‌شده',
+          style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w700)),
+      ]),
+      const SizedBox(height: 10),
+      if (_studyTasks.isEmpty)
+        Container(padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: const Color(0xFFEAF3F0), borderRadius: BorderRadius.circular(18)),
+          child: const Column(children: [
+            Icon(Icons.event_note_outlined, size: 34, color: Color(0xFF287D72)),
+            SizedBox(height: 8),
+            Text('هنوز کاری ثبت نشده است', style: TextStyle(fontWeight: FontWeight.w800)),
+            SizedBox(height: 4),
+            Text('اولین کار درسی خود را در کادر بالا بنویس.',
+              textAlign: TextAlign.center, style: TextStyle(height: 1.6)),
+          ]),
+        )
+      else
+        ..._studyTasks.asMap().entries.map((entry) => Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: CheckboxListTile(
+            value: _completedTasks.contains(entry.key),
+            onChanged: (checked) {
+              setState(() {
+                if (checked == true) { _completedTasks.add(entry.key); }
+                else { _completedTasks.remove(entry.key); }
+              });
+              _saveData();
+            },
+            title: Text(entry.value),
+            subtitle: Text(_taskScheduleLabel(entry.value),
+              style: TextStyle(height: 1.5, color: _taskDueDates[entry.value] != null && !_completedTasks.contains(entry.key) && DateTime.parse(_taskDueDates[entry.value]!).isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)) ? Colors.red.shade700 : Colors.black54)),
+            controlAffinity: ListTileControlAffinity.leading,
+            secondary: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(tooltip: 'تنظیم موعد', icon: const Icon(Icons.calendar_month_outlined),
+                onPressed: () => _setTaskDueDate(entry.value)),
+              IconButton(
+              tooltip: 'حذف کار',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () {
+                setState(() {
+                  final updatedCompleted = _completedTasks
+                    .where((index) => index != entry.key)
+                    .map((index) => index > entry.key ? index - 1 : index)
+                    .toSet();
+                  _studyTasks.removeAt(entry.key);
+                  _completedTasks
+                    ..clear()
+                    ..addAll(updatedCompleted);
+                });
+                _taskDueDates.remove(entry.value);
+                _saveData();
+              }
+              ),
+            ]),
+          ),
+        )),
+      const SizedBox(height: 12),
+      const Text('کارها، وضعیت انجام و یادداشت‌ها روی همین دستگاه ذخیره می‌شوند. برای انتقال به گوشی دیگر، همگام‌سازی ابری در نسخهٔ بعدی لازم است.',
+        style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.7)),
+    ],
+  );
+
+  Future<void> _addExam() async {
+    final subjectController = TextEditingController();
+    final scoreController = TextEditingController();
+    DateTime examDate = DateTime.now().add(const Duration(days: 7));
+    String? validationMessage;
+    final exam = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('ثبت آزمون'),
+          content: SingleChildScrollView(child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(controller: subjectController, autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'نام درس یا آزمون',
+                  hintText: 'مثلاً: ریاضی فصل سوم')),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final selected = await showDatePicker(
+                    context: dialogContext,
+                    initialDate: examDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    helpText: 'تاریخ آزمون را انتخاب کن',
+                  );
+                  if (selected != null) {
+                    setDialogState(() {
+                      examDate = selected;
+                      validationMessage = null;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: Text('تاریخ: ${examDate.year}/${examDate.month.toString().padLeft(2, '0')}/${examDate.day.toString().padLeft(2, '0')}'),
+              ),
+              const SizedBox(height: 8),
+              TextField(controller: scoreController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'نمره (اختیاری از ۲۰)',
+                  hintText: 'مثلاً ۱۷٫۵')),
+              if (validationMessage != null) ...[
+                const SizedBox(height: 8),
+                Text(validationMessage!, style: const TextStyle(color: Colors.red)),
+              ],
+            ],
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('انصراف')),
+            FilledButton(
+              onPressed: () {
+                final subject = subjectController.text.trim();
+                final scoreText = scoreController.text.trim();
+                final score = scoreText.isEmpty ? null : double.tryParse(scoreText);
+                if (subject.isEmpty) {
+                  setDialogState(() => validationMessage = 'نام درس یا آزمون را وارد کن.');
+                  return;
+                }
+                if (scoreText.isNotEmpty && (score == null || score < 0 || score > 20)) {
+                  setDialogState(() => validationMessage = 'نمره باید عددی بین صفر تا ۲۰ باشد.');
+                  return;
+                }
+                Navigator.pop(dialogContext, {
+                  'subject': subject,
+                  'date': examDate.toIso8601String(),
+                  'score': score == null ? '' : score.toString(),
+                });
+              },
+              child: const Text('ذخیره آزمون'),
+            ),
+          ],
+        ),
+      ),
+    );
+    // Let the dialog's reverse transition finish before disposing its TextField controllers.
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      subjectController.dispose();
+      scoreController.dispose();
+    });
+    if (exam == null || !mounted) return;
+    setState(() => _exams.add(exam));
+    await _saveData();
+  }
+
+  void _createReviewPlan(Map<String, String> exam) {
+    final subject = exam['subject'] ?? 'درس';
+    final date = DateTime.parse(exam['date']!);
+    final today = DateTime.now();
+    final daysRemaining = DateTime(date.year, date.month, date.day)
+      .difference(DateTime(today.year, today.month, today.day)).inDays;
+    if (daysRemaining < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تاریخ این آزمون گذشته است؛ می‌توانی کار مرور را دستی اضافه کنی.')),
+      );
+      return;
+    }
+    final tasks = [
+      'مرور خلاصه‌ها و نکته‌های $subject',
+      'حل چند سؤال تمرینی از $subject',
+      'تحلیل اشتباه‌ها و مرور نهایی $subject',
+    ];
+    final daySpan = daysRemaining.clamp(0, 3);
+    final dueDates = [
+      today.add(Duration(days: (daySpan / 3).floor())),
+      today.add(Duration(days: (daySpan * 2 / 3).floor())),
+      date,
+    ];
+    setState(() {
+      for (var i = 0; i < tasks.length; i++) {
+        final task = tasks[i];
+        if (!_studyTasks.contains(task)) _studyTasks.add(task);
+        _taskDueDates[task] = DateTime(dueDates[i].year, dueDates[i].month, dueDates[i].day).toIso8601String();
+      }
+      _tab = 'برنامه من';
+    });
+    _saveData();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('سه گام مرور برای $subject به برنامه اضافه شد.')),
+    );
+  }
+  Widget _examsPage() {
+    final sortedExams = [..._exams]
+      ..sort((a, b) => DateTime.parse(a['date']!).compareTo(DateTime.parse(b['date']!)));
+    final scored = _exams.where((exam) => (double.tryParse(exam['score'] ?? '') ?? -1) >= 0).toList();
+    final average = scored.isEmpty ? null : scored
+      .map((exam) => double.parse(exam['score']!))
+      .reduce((a, b) => a + b) / scored.length;
+    return ListView(padding: const EdgeInsets.fromLTRB(18,18,18,28), children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        const Expanded(child: Text('آزمون‌ها و نتیجه‌ها',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      const Text('تاریخ آزمون‌ها را ثبت کن تا زمان باقی‌مانده و نتیجه‌ها را یکجا ببینی.',
+        style: TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 16),
+      if (!_localDataLoaded) const LinearProgressIndicator(),
+      if (_exams.isNotEmpty) Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: const Color(0xFFE3F2ED),
+          borderRadius: BorderRadius.circular(18)),
+        child: Row(children: [
+          const Icon(Icons.insights_rounded, color: Color(0xFF287D72), size: 30),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${_exams.length} آزمون ثبت‌شده',
+              style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(average == null ? 'هنوز نمره‌ای ثبت نشده است'
+              : 'میانگین نمره‌های ثبت‌شده: ${average.toStringAsFixed(1)} از ۲۰',
+              style: const TextStyle(height: 1.6)),
+          ])),
+        ]),
+      ),
+      const SizedBox(height: 14),
+      FilledButton.icon(onPressed: _localDataLoaded ? _addExam : null,
+        icon: const Icon(Icons.add_circle_outline_rounded),
+        label: const Padding(padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text('افزودن آزمون یا امتحان'))),
+      const SizedBox(height: 12),
+      if (_exams.isEmpty) Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: const Column(children: [
+          Icon(Icons.event_available_outlined, size: 38, color: Color(0xFF287D72)),
+          SizedBox(height: 8),
+          Text('هنوز آزمونی ثبت نشده است',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+          SizedBox(height: 5),
+          Text('امتحان مدرسه، آزمون آزمایشی یا موعد مهم بعدی را اضافه کن.',
+            textAlign: TextAlign.center, style: TextStyle(height: 1.7)),
+        ]),
+      ) else ...sortedExams.map((exam) {
+        final date = DateTime.parse(exam['date']!);
+        final today = DateTime.now();
+        final days = DateTime(date.year, date.month, date.day)
+          .difference(DateTime(today.year, today.month, today.day)).inDays;
+        final countdown = days < 0 ? 'تاریخ آزمون گذشته است'
+          : days == 0 ? 'آزمون امروز است'
+          : 'تا آزمون $days روز مانده';
+        final score = exam['score'] ?? '';
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFFDCEFEA),
+              child: Icon(days < 0 ? Icons.check_circle_outline : Icons.event_note,
+                color: const Color(0xFF287D72))),
+            title: Text(exam['subject']!, style: const TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Padding(padding: const EdgeInsets.only(top: 6),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}  •  $countdown'
+                  '${score.isEmpty ? '' : '\nنمره: $score از ۲۰'}',
+                  style: const TextStyle(height: 1.6)),
+                if (days >= 0)
+                  TextButton.icon(
+                    onPressed: () => _createReviewPlan(exam),
+                    icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+                    label: const Text('ساخت برنامهٔ مرور'),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  ),
+              ])),
+            isThreeLine: true,
+            trailing: IconButton(
+              tooltip: 'حذف آزمون',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () {
+                setState(() => _exams.remove(exam));
+                _saveData();
+              },
+            ),
+          ),
+        );
+      }),
+      const SizedBox(height: 10),
+      const Text('این اطلاعات فقط روی همین دستگاه نگهداری می‌شود؛ تاریخ و نمره را خودت ثبت می‌کنی و اپ به سامانهٔ رسمی مدرسه یا آزمون متصل نیست.',
+        style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.7)),
+    ]);
+  }
+
+  Widget _notesPage() => ListView(padding: const EdgeInsets.fromLTRB(18,18,18,28), children: [
+    Row(children: [
+      IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+        icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+      const SizedBox(width: 6),
+      const Expanded(child: Text('یادداشت‌های من', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+    ]),
+    const SizedBox(height: 8),
+    const Text('نکته‌ها، هدف‌ها یا پرسش‌هایی را که می‌خواهی بعداً مرور کنی اینجا بنویس.', style: TextStyle(height: 1.7, color: Colors.black54)),
+    const SizedBox(height: 18),
+    if (!_localDataLoaded) const LinearProgressIndicator(),
+    TextField(controller: _notesController, enabled: _localDataLoaded, minLines: 8, maxLines: 18,
+      onChanged: (_) => _saveData(),
+      decoration: InputDecoration(hintText: 'یادداشت تحصیلی شما…', filled: true, fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)))),
+    const SizedBox(height: 12),
+    FilledButton.icon(onPressed: _localDataLoaded ? _saveData : null, icon: const Icon(Icons.save_outlined), label: const Text('ذخیرهٔ یادداشت')),
+    const SizedBox(height: 8),
+    const Text('یادداشت‌ها فقط در حافظهٔ محلی این دستگاه ذخیره می‌شوند و همگام‌سازی ابری ندارند.', style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.7)),
+  ]);
+
+  Widget _secondaryPage() {
+    if (_tab == 'برنامه من') return _studyPlannerPage();
+    if (_tab == 'آزمون‌ها') return _examsPage();
+    if (_tab == 'یادداشت‌ها') return _notesPage();
+    final details = switch (_tab) {
+      'برنامه من' => ('برنامهٔ درسی من', 'برنامه‌ریزی متناسب با زمان و هدف شما', Icons.calendar_month_rounded,
+        'در نسخهٔ بعدی، درس‌ها، زمان آزاد و تاریخ امتحان‌ها را ثبت می‌کنیم تا برنامه‌ای واقع‌بینانه ساخته شود.'),
+      'یادداشت‌ها' => ('یادداشت‌های من', 'نکته‌ها و هدف‌های مهم تحصیلی', Icons.bookmark_border_rounded,
+        'اینجا محل نگهداری نکته‌ها، هدف‌ها و یادداشت‌های تحصیلی شما خواهد بود.'),
+      _ => ('پروفایل تحصیلی', 'اطلاعات پایه برای راهنمایی دقیق‌تر', Icons.person_outline_rounded,
+        'مقطع فعلی: $_stage\nموضوع منتخب: $_goal\nاین ترجیحات روی همین دستگاه ذخیره می‌شوند.'),
+    };
+    return ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 28), children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        Expanded(child: Text(details.$1, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      Text(details.$2, style: const TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 22),
+      Container(padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 56, height: 56,
+            decoration: BoxDecoration(color: const Color(0xFFDCEFEA), borderRadius: BorderRadius.circular(18)),
+            child: Icon(details.$3, color: const Color(0xFF287D72), size: 30)),
+          const SizedBox(height: 18),
+          Text(details.$1, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Text(details.$4, style: const TextStyle(height: 1.8)),
+          const SizedBox(height: 18),
+          const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.info_outline, color: Color(0xFF93620B), size: 20),
+            SizedBox(width: 8),
+            Expanded(child: Text('این بخش در حال توسعه است؛ فعلاً اطلاعاتی ذخیره نمی‌شود.',
+              style: TextStyle(color: Color(0xFF76520F), height: 1.6))),
+          ]),
+          const SizedBox(height: 16),
+          if (_tab == 'پروفایل') ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(onPressed: _clearSavedData,
+              icon: const Icon(Icons.delete_forever_outlined), label: const Text('حذف اطلاعات ذخیره‌شده')),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _tab = 'خانه'),
+            icon: const Icon(Icons.home_outlined), label: const Text('بازگشت به صفحهٔ اصلی')),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _header()=>Padding(padding:const EdgeInsets.fromLTRB(20,14,20,4),child:Row(children:[
+    Container(width:48,height:48,decoration:BoxDecoration(color:const Color(0xFFDCEFEA),borderRadius:BorderRadius.circular(16)),
+      child:const Icon(Icons.auto_awesome,color:Color(0xFF287D72),size:28)),
+    const SizedBox(width:12),
+    const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('همراه تحصیلی',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900)),
+      Text('از اولین قدم تا آینده‌ای روشن',style:TextStyle(fontSize:12,color:Colors.black54)),
+    ])),
+    IconButton(onPressed:()=>setState(()=>_showGuide=!_showGuide),tooltip:'راهنما',icon:const Icon(Icons.help_outline_rounded)),
+  ]));
+
+  Widget _welcomeCard()=>Container(padding:const EdgeInsets.all(20),
+    decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF287D72),Color(0xFF3A9B88)],begin:Alignment.topRight,end:Alignment.bottomLeft),borderRadius:BorderRadius.circular(24)),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('مسیر تحصیلی تو، قدم‌به‌قدم',style:TextStyle(color:Colors.white,fontSize:21,fontWeight:FontWeight.w900)),
+      const SizedBox(height:8),
+      const Text('برای درس خواندن، انتخاب رشته، کنکور یا تصمیم‌های بعد از فارغ‌التحصیلی یک نقطهٔ شروع پیدا کن.',style:TextStyle(color:Colors.white,height:1.7)),
+      if(_showGuide)...[const SizedBox(height:12),const Text('مقطع را انتخاب کن، موضوع را مشخص کن و پرسشت را با جزئیات بنویس. پاسخ‌های این نسخه نمونه و عمومی‌اند.',style:TextStyle(color:Colors.white,height:1.6))],
+      const SizedBox(height:14),
+      Wrap(spacing:8,runSpacing:8,children:[_heroPill(Icons.flag_outlined,'هدف‌گذاری'),_heroPill(Icons.schedule,'برنامهٔ واقع‌بینانه'),_heroPill(Icons.route_outlined,'انتخاب مسیر')]),
+    ]));
+
+  Widget _heroPill(IconData icon,String label)=>Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:7),
+    decoration:BoxDecoration(color:Colors.white.withValues(alpha:.16),borderRadius:BorderRadius.circular(30)),
+    child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,color:Colors.white,size:15),const SizedBox(width:5),Text(label,style:const TextStyle(color:Colors.white,fontSize:11,fontWeight:FontWeight.w600))]));
+
+  Widget _stagePicker()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Text('مقطع تحصیلی شما',style:TextStyle(fontSize:15,fontWeight:FontWeight.w800)),const SizedBox(height:10),
+    Wrap(spacing:8,runSpacing:8,children:stages.map((s)=>ChoiceChip(label:Text(s),selected:_stage==s,
+      onSelected:(_) { setState(()=>_stage=s); _saveData(); },selectedColor:const Color(0xFFDCEFEA),
+      side:BorderSide(color:_stage==s?const Color(0xFF287D72):const Color(0xFFE2E9E6)),
+      labelStyle:TextStyle(fontWeight:_stage==s?FontWeight.w800:FontWeight.w500))).toList()),
+  ]);
+
+  Widget _goalCard(IconData icon,String title,String subtitle){
+    final selected=_goal==title;
+    return InkWell(borderRadius:BorderRadius.circular(20),onTap:() { setState(()=>_goal=title); _saveData(); },
+      child:Container(padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:selected?const Color(0xFFE3F2ED):Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:selected?const Color(0xFF287D72):const Color(0xFFE6ECE9))),
+        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Icon(icon,color:const Color(0xFF287D72),size:27),const Spacer(),
+          Text(title,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:14)),const SizedBox(height:4),
+          Text(subtitle,style:const TextStyle(fontSize:11,color:Colors.black54,height:1.4),maxLines:2,overflow:TextOverflow.ellipsis),
+        ])));
+  }
+
+  Widget _questionCard()=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+    Text('موضوع: $_goal',style:const TextStyle(fontWeight:FontWeight.w700,color:Color(0xFF287D72))),const SizedBox(height:12),
+    TextField(controller:_questionController,minLines:3,maxLines:6,
+      decoration:InputDecoration(hintText:'مثلاً: برای امتحان‌های دو هفتهٔ آینده چطور برنامه‌ریزی کنم؟',filled:true,fillColor:const Color(0xFFF5F8F7),border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none))),
+    const SizedBox(height:12),
+    FilledButton.icon(onPressed:_askAdvisor,icon:const Icon(Icons.chat_bubble_outline_rounded),label:const Padding(padding:EdgeInsets.symmetric(vertical:13),child:Text('دریافت راهنمایی'))),
+  ])));
+
+  Widget _answerCard()=>Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Row(children:[Icon(Icons.lightbulb_outline,color:Color(0xFF287D72)),SizedBox(width:8),Text('راهنمای پیشنهادی',style:TextStyle(fontWeight:FontWeight.w900,fontSize:17))]),
+    const SizedBox(height:12),SelectableText(_answer!,style:const TextStyle(height:1.8)),
+  ])));
+
+  Widget _privacyNote()=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(16)),
+    child:const Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Icon(Icons.info_outline,color:Color(0xFF93620B)),SizedBox(width:10),
+      Expanded(child:Text('برنامه‌ها و یادداشت‌ها روی همین دستگاه ذخیره می‌شوند. اگر اتصال هوش مصنوعی در نسخه نصب‌شده فعال باشد، پرسش برای پاسخ‌گویی به سرور ارسال می‌شود؛ اطلاعات حساس وارد نکنید. تصمیم‌های مهم آموزشی را با خانواده و مشاور مدرسه نیز بررسی کنید.',style:TextStyle(height:1.7,color:Color(0xFF76520F),fontSize:12))),
+    ]));
+}
+), '')}/api/advice'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'stage': _stage, 'goal': _goal,
+            'question': 'مثل یک مربی آموزشی مرحله‌به‌مرحله عمل کن. سؤال را یکجا حل نکن. ابتدا یک سرنخ کوتاه بده، سپس روش حل را مرحله‌ای توضیح بده و در پایان یک سؤال کوتاه برای بررسی فهم بپرس. مبحث: $result'}),
+        ).timeout(const Duration(seconds: 35));
+        if (response.statusCode == 200) {
+          final payload = jsonDecode(response.body);
+          if (payload is Map<String, dynamic> && payload['answer'] is String) aiAnswer = payload['answer'] as String;
+        }
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final offlineHint = 'ابتدا مسئله را به بخش‌های کوچک تقسیم کن و مشخص کن چه چیزی را می‌دانی و چه چیزی را باید پیدا کنی.\n\nسرنخ: برای «$result» یک مثال ساده بساز و قبل از دیدن پاسخ، روش خودت را توضیح بده.';
+        final explanation = aiAnswer.isEmpty
+          ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر پاسخ اشتباه شد، مشخص کن اشتباه از فهم مفهوم بوده یا از محاسبه.'
+          : aiAnswer;
+        return AlertDialog(
+          title: Text(stage == 0 ? 'گام ۱ · سرنخ' : stage == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (stage == 0) Text(offlineHint, style: const TextStyle(height: 1.8))
+            else if (stage == 1) Text(explanation, style: const TextStyle(height: 1.8))
+            else const Text('بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی، دوباره به گام توضیح برگرد.', style: TextStyle(height: 1.8)),
+            const SizedBox(height: 10),
+            Text('مبحث: $result', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
+            if (aiAnswer.isEmpty) const Text('این راهنمای عمومی آفلاین است؛ سرویس هوش مصنوعی تنظیم نشده یا در دسترس نبود.', style: TextStyle(color: Colors.black54, fontSize: 11)),
+          ])),
+          actions: [
+            if (stage > 0) TextButton(onPressed: () => setDialogState(() => stage--), child: const Text('گام قبل')),
+            if (stage < 2) FilledButton(onPressed: () => setDialogState(() => stage++),
+              child: Text(stage == 0 ? 'دیدن توضیح' : 'بررسی یادگیری')),
+            if (stage == 2) FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('پایان')),
+          ],
+        );
+      }));
+  }
+
   Widget _studyProgressSection() {
     final subjects = <String, List<Map<String, String>>>{};
     for (final session in _studySessions) {
@@ -676,12 +1680,15 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 Expanded(child: tasks.isEmpty
                   ? const Text('کاری زمان‌بندی نشده', style: TextStyle(color: Colors.black45, fontSize: 12))
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: tasks.map((entry) =>
-                      Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(children: [
-                        Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
-                          size: 14, color: const Color(0xFF287D72)),
-                        const SizedBox(width: 5),
-                        Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
-                      ])).toList())),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Row(children: [
+                          Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
+                            size: 14, color: const Color(0xFF287D72)),
+                          const SizedBox(width: 5),
+                          Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
+                        ]),
+                      )).toList())),
               ]));
           }),
         const SizedBox(height: 4),
@@ -707,6 +1714,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _focusTimerCard(),
       const SizedBox(height: 16),
       _studyProgressSection(),
+      const SizedBox(height: 12),
+      _weeklyProgressReport(),
+      const SizedBox(height: 12),
+      _reviewPracticeSection(),
+      const SizedBox(height: 12),
+      _adaptivePlanCard(),
       const SizedBox(height: 16),
       Container(padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
