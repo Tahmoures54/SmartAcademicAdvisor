@@ -47,6 +47,13 @@ class AdviceApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertNotIn("key", response.get_json().get("error", "").lower())
 
+    def test_enforces_daily_request_limit(self):
+        os.environ["MAX_REQUESTS_PER_DAY"] = "1"
+        first = self.client.post("/api/advice", json=self.payload())
+        second = self.client.post("/api/advice", json=self.payload())
+        self.assertEqual(first.status_code, 503)
+        self.assertEqual(second.status_code, 429)
+
     @patch("app.urlopen")
     def test_returns_provider_answer(self, mocked_urlopen):
         os.environ["AI_API_KEY"] = "test-only-key"
