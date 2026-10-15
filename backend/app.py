@@ -29,14 +29,17 @@ _ALLOWED_GOALS = {
 def _is_rate_limited(client_key: str) -> bool:
     """Basic per-process throttle; production deployments need shared rate limiting."""
     try:
-        limit = max(1, int(os.getenv("MAX_REQUESTS_PER_MINUTE", "10")))
+        minute_limit = max(1, int(os.getenv("MAX_REQUESTS_PER_MINUTE", "10")))
+        daily_limit = max(1, int(os.getenv("MAX_REQUESTS_PER_DAY", "50")))
     except ValueError:
-        limit = 10
+        minute_limit, daily_limit = 10, 50
     now = time.monotonic()
     bucket = _rate_buckets[client_key]
-    while bucket and now - bucket[0] >= 60:
+    while bucket and now - bucket[0] >= 24 * 60 * 60:
         bucket.popleft()
-    if len(bucket) >= limit:
+    if len(bucket) >= daily_limit:
+        return True
+    if sum(now - stamp < 60 for stamp in bucket) >= minute_limit:
         return True
     bucket.append(now)
     return False
@@ -71,9 +74,8 @@ def advice():
     if not isinstance(question, str) or not question.strip() or len(question) > 1500:
         return jsonify({"error": "Question must contain 1 to 1500 characters"}), 400
 
-    client_key = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
-    # Use only the first proxy-provided address; configure trusted proxies in production.
-    client_key = client_key.split(",")[0].strip()[:80]
+    # Do not trust caller-supplied X-Forwarded-For unless a trusted proxy is configured.
+    client_key = (request.remote_addr or "unknown")[:80]
     if _is_rate_limited(client_key):
         return jsonify({"error": "Too many requests. Please try again shortly."}), 429
 
