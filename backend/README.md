@@ -1,6 +1,6 @@
 # Educational advice API
 
-This is an optional server-side proxy for an OpenAI-compatible chat-completions API. The Flutter app must never contain the provider API key.
+This is an optional server-side proxy for an OpenAI-compatible chat-completions API. The Flutter app can also be built with an AI provider key through GitHub Actions for testing, but any key embedded in an APK is extractable. Prefer this server-side proxy for public production releases.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ The `/health` endpoint is a basic health check. Send JSON to `POST /api/advice` 
 
 - Set provider spending limits and alerts. The default in-process throttle is 10 requests/minute and 50/day per IP; it is only a basic safeguard, resets on restart, and is not shared across multiple workers.
 - Configure HTTPS, trusted reverse-proxy handling, persistent/shared rate limiting, monitoring, and appropriate retention policies at the hosting layer.
-- Do not log questions or secrets. Do not expose the API key to the mobile app.
+- Do not log questions or secrets. Keep the provider API key on the server for public releases; a key embedded in the APK can be extracted.
 - Keep the service URL in the Flutter build configuration using `--dart-define=ADVISOR_API_BASE_URL=https://your-api.example`.
 - Review privacy and child-safety requirements before collecting or transmitting data from minors.
 
