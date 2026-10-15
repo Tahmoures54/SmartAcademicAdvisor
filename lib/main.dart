@@ -569,7 +569,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
           return Card(color: isDue ? const Color(0xFFEAF5F1) : const Color(0xFFF7F9F8),
             child: ListTile(
               title: Text(card['prompt'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-              subtitle: Text('${card['subject'] ?? 'درس'} · ${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: ${date!.year}/${date.month}/${date.day}'}'),
+              subtitle: Text('${card['subject'] ?? 'درس'} · ${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: ${date.year}/${date.month}/${date.day}'}'),
               trailing: IconButton(tooltip: 'مرور سؤال', icon: const Icon(Icons.play_circle_outline),
                 onPressed: () => _reviewOneCard(card)),
             ));
@@ -632,8 +632,10 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       card[key] = ((int.tryParse(card[key] ?? '0') ?? 0) + 1).toString();
     });
     await _saveData();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(grade ? 'مرور بعدی ${dueDate.year}/${dueDate.month}/${dueDate.day} است.' : 'این سؤال فردا دوباره مرور می‌شود.')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(grade ? 'مرور بعدی ${dueDate.year}/${dueDate.month}/${dueDate.day} است.' : 'این سؤال فردا دوباره مرور می‌شود.')));
+    }
   }
 
   Widget _adaptivePlanCard() => Container(
@@ -684,7 +686,9 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       });
       final known = averages[subject];
       if (subject.isEmpty || (known == null ? 99 : known.reduce((x, y) => x + y) / known.length) >
-          weak.first.value.reduce((x, y) => x + y) / weak.first.value.length) subject = weak.first.key;
+          weak.first.value.reduce((x, y) => x + y) / weak.first.value.length) {
+        subject = weak.first.key;
+      }
     }
     if (subject.isEmpty) subject = 'درس انتخابی';
     final tasks = [
@@ -709,8 +713,10 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _tab = 'برنامه من';
     });
     await _saveData();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('برنامهٔ پیشنهادی برای $subject با مجموع $result دقیقه ساخته شد.')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('برنامهٔ پیشنهادی برای $subject با مجموع $result دقیقه ساخته شد.')));
+    }
   }
 
   Future<void> _openStepTutor() async {
