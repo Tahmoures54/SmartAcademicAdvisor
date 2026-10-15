@@ -36,11 +36,16 @@ void main() {
 
   testWidgets('study self-assessment calculates a guidance score', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.ensureVisible(find.text('ارزیابی سریع روش مطالعه'));
     await tester.tap(find.text('ارزیابی سریع روش مطالعه'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('به‌سختی'));
     await tester.tap(find.text('به‌سختی'));
+    await tester.ensureVisible(find.text('خیلی زود'));
     await tester.tap(find.text('خیلی زود'));
+    await tester.ensureVisible(find.text('به‌ندرت'));
     await tester.tap(find.text('به‌ندرت'));
+    await tester.ensureVisible(find.text('اغلب سنگین است'));
     await tester.tap(find.text('اغلب سنگین است'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('نمایش جمع‌بندی'));
