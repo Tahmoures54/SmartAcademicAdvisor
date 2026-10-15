@@ -170,6 +170,7 @@ void main() {
     expect(find.text('میتوکندری چه می‌کند؟'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('study_review_cards'), contains('میتوکندری'));
+    await tester.ensureVisible(find.byTooltip('مرور سؤال').first);
     await tester.tap(find.byTooltip('مرور سؤال').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('نمایش پاسخ'));
