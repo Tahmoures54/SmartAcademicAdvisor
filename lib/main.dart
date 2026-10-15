@@ -221,12 +221,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     setState(() {
       _answer = question.isEmpty
         ? 'لطفاً ابتدا سؤال یا دغدغهٔ تحصیلی‌تان را بنویسید.'
-        : 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\\n\\n'
-          'مقطع: $_stage\\nموضوع: $_goal\\n\\n'
-          'پیشنهاد برای مقطع شما: ${_stageAdvice()}\\n\\n'
-          'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\\n\\n'
-          'سؤال شما: «$question»\\n'
-          'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\\n\\n'
+        : 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\n\n'
+          'مقطع: $_stage\nموضوع: $_goal\n\n'
+          'پیشنهاد برای مقطع شما: ${_stageAdvice()}\n\n'
+          'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\n\n'
+          'سؤال شما: «$question»\n'
+          'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\n\n'
           'این نسخهٔ اولیه هنوز به سرویس هوش مصنوعی متصل نیست؛ این راهنمای قاعده‌محور و عمومی است و جایگزین مشاور مدرسه یا متخصص نیست.';
     });
   }
@@ -352,22 +352,24 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
             secondary: IconButton(
               tooltip: 'حذف کار',
               icon: const Icon(Icons.delete_outline_rounded),
-              onPressed: () => setState(() {
-                final updatedCompleted = _completedTasks
-                  .where((index) => index != entry.key)
-                  .map((index) => index > entry.key ? index - 1 : index)
-                  .toSet();
-                _studyTasks.removeAt(entry.key);
-                _completedTasks
-                  ..clear()
-                  ..addAll(updatedCompleted);
+              onPressed: () {
+                setState(() {
+                  final updatedCompleted = _completedTasks
+                    .where((index) => index != entry.key)
+                    .map((index) => index > entry.key ? index - 1 : index)
+                    .toSet();
+                  _studyTasks.removeAt(entry.key);
+                  _completedTasks
+                    ..clear()
+                    ..addAll(updatedCompleted);
+                });
                 _saveData();
-              })
+              }
             ),
           ),
         )),
       const SizedBox(height: 12),
-      const Text('یادآوری: در این مرحله، فهرست فقط تا زمان بسته‌ماندن صفحهٔ برنامه در حافظه می‌ماند؛ ذخیرهٔ دائمی در مرحلهٔ ذخیره‌سازی اضافه می‌شود.',
+      const Text('کارها، وضعیت انجام و یادداشت‌ها روی همین دستگاه ذخیره می‌شوند. برای انتقال به گوشی دیگر، همگام‌سازی ابری در نسخهٔ بعدی لازم است.',
         style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.7)),
     ],
   );
@@ -401,7 +403,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       'یادداشت‌ها' => ('یادداشت‌های من', 'نکته‌ها و هدف‌های مهم تحصیلی', Icons.bookmark_border_rounded,
         'اینجا محل نگهداری نکته‌ها، هدف‌ها و یادداشت‌های تحصیلی شما خواهد بود.'),
       _ => ('پروفایل تحصیلی', 'اطلاعات پایه برای راهنمایی دقیق‌تر', Icons.person_outline_rounded,
-        'مقطع فعلی: $_stage\\nموضوع منتخب: $_goal\\nاین ترجیحات روی همین دستگاه ذخیره می‌شوند.'),
+        'مقطع فعلی: $_stage\nموضوع منتخب: $_goal\nاین ترجیحات روی همین دستگاه ذخیره می‌شوند.'),
     };
     return ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 28), children: [
       Row(children: [
