@@ -617,6 +617,79 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     _saveData();
   }
 
+  String _weekdayName(DateTime date) => switch (date.weekday) {
+    DateTime.monday => 'دوشنبه',
+    DateTime.tuesday => 'سه‌شنبه',
+    DateTime.wednesday => 'چهارشنبه',
+    DateTime.thursday => 'پنجشنبه',
+    DateTime.friday => 'جمعه',
+    DateTime.saturday => 'شنبه',
+    _ => 'یکشنبه',
+  };
+
+  Widget _weeklyScheduleSection() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduled = _studyTasks.asMap().entries.where((entry) =>
+      _taskDueDates.containsKey(entry.value)).toList();
+    final overdue = scheduled.where((entry) {
+      final due = DateTime.parse(_taskDueDates[entry.value]!);
+      return DateTime(due.year, due.month, due.day).isBefore(today) &&
+        !_completedTasks.contains(entry.key);
+    }).toList();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.view_week_rounded, color: Color(0xFF287D72)),
+          SizedBox(width: 8),
+          Text('برنامهٔ هفت روز آینده', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        ]),
+        const SizedBox(height: 10),
+        if (overdue.isNotEmpty) ...[
+          Container(width: double.infinity, padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(12)),
+            child: Text('عقب‌افتاده (${overdue.length}) · ${overdue.map((entry) => entry.value).join('، ')}',
+              style: TextStyle(color: Colors.red.shade800, height: 1.5))),
+          const SizedBox(height: 8),
+        ],
+        for (var offset = 0; offset < 7; offset++)
+          Builder(builder: (context) {
+            final day = today.add(Duration(days: offset));
+            final tasks = scheduled.where((entry) {
+              final due = DateTime.parse(_taskDueDates[entry.value]!);
+              return due.year == day.year && due.month == day.month && due.day == day.day;
+            }).toList();
+            final dateLabel = '${day.year}/${day.month.toString().padLeft(2, '0')}/${day.day.toString().padLeft(2, '0')}';
+            return Container(margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: BoxDecoration(color: offset == 0 ? const Color(0xFFE3F2ED) : const Color(0xFFF7F9F8),
+                borderRadius: BorderRadius.circular(12)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(width: 94, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(offset == 0 ? 'امروز' : _weekdayName(day), style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(dateLabel, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                ])),
+                const SizedBox(width: 8),
+                Expanded(child: tasks.isEmpty
+                  ? const Text('کاری زمان‌بندی نشده', style: TextStyle(color: Colors.black45, fontSize: 12))
+                  : Column(crossAxisAlignment: CrossAxisAlignment.start, children: tasks.map((entry) =>
+                      Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(children: [
+                        Icon(_completedTasks.contains(entry.key) ? Icons.check_circle : Icons.circle_outlined,
+                          size: 14, color: const Color(0xFF287D72)),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text(entry.value, style: const TextStyle(fontSize: 12))),
+                      ])).toList())),
+              ]));
+          }),
+        const SizedBox(height: 4),
+        const Text('برای زمان‌بندی هر کار، از آیکون تقویم کنار همان کار استفاده کن.',
+          style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.5)),
+      ]),
+    );
+  }
   Widget _studyPlannerPage() => ListView(
     padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
     children: [
@@ -679,9 +752,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
             Expanded(child: Text('عقب‌افتاده: $overdue', style: TextStyle(fontWeight: FontWeight.w800, color: overdue > 0 ? Colors.red.shade700 : const Color(0xFF287D72)))),
           ]));
       }),
-      const SizedBox(height: 12),
+      const SizedBox(height: 14),
+      _weeklyScheduleSection(),
+      const SizedBox(height: 14),
       Row(children: [
-        const Expanded(child: Text('کارهای امروز',
+        const Expanded(child: Text('همهٔ کارهای درسی',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
         Text('${_completedTasks.length} از ${_studyTasks.length} انجام‌شده',
           style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w700)),
@@ -850,7 +925,6 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       'حل چند سؤال تمرینی از $subject',
       'تحلیل اشتباه‌ها و مرور نهایی $subject',
     ];
-    final today = DateTime.now();
     final daySpan = daysRemaining.clamp(0, 3);
     final dueDates = [
       today.add(Duration(days: (daySpan / 3).floor())),
