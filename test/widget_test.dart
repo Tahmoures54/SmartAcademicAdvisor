@@ -132,6 +132,9 @@ void main() {
     expect(find.text('0 از 1 انجام‌شده'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), contains('مرور فصل دوم علوم'));
+    expect(find.text('بدون موعد'), findsOneWidget);
+    expect(find.byTooltip('تنظیم موعد'), findsOneWidget);
+    expect(find.textContaining('عقب‌افتاده:'), findsOneWidget);
   });
 }
 
