@@ -601,7 +601,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
           const Text('برای پیشنهاد شخصی، یک جلسهٔ مطالعه با میزان تسلط خود ثبت کن یا کارت مرور بساز.',
             style: TextStyle(fontWeight: FontWeight.w700, height: 1.7))
         else ...[
-          Text('اولویت پیشنهادی: ${priority}',
+          Text('اولویت پیشنهادی: $priority',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
           Text((wrongBySubject[priority] ?? 0) > 0
@@ -623,7 +623,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 Text(confidence == null ? 'بدون خودارزیابی' : 'تسلط ${confidence.toStringAsFixed(1)}/5',
                   style: const TextStyle(fontSize: 11, color: Color(0xFF287D72))),
                 const SizedBox(width: 8),
-                Text('${due} مرور', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                Text('$due مرور', style: const TextStyle(fontSize: 11, color: Colors.black54)),
               ]),
             );
           }),
