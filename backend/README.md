@@ -14,7 +14,7 @@ The `/health` endpoint is a basic health check. Send JSON to `POST /api/advice` 
 
 ## Before production
 
-- Set provider spending limits and alerts; the in-process throttle is only a basic safeguard and is not shared across multiple workers.
+- Set provider spending limits and alerts. The default in-process throttle is 10 requests/minute and 50/day per IP; it is only a basic safeguard, resets on restart, and is not shared across multiple workers.
 - Configure HTTPS, trusted reverse-proxy handling, persistent/shared rate limiting, monitoring, and appropriate retention policies at the hosting layer.
 - Do not log questions or secrets. Do not expose the API key to the mobile app.
 - Keep the service URL in the Flutter build configuration using `--dart-define=ADVISOR_API_BASE_URL=https://your-api.example`.
