@@ -6,6 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _advisorApiBaseUrl = String.fromEnvironment('ADVISOR_API_BASE_URL');
+const _aiApiKey = String.fromEnvironment('AI_API_KEY');
+const _aiBaseUrl = String.fromEnvironment('AI_BASE_URL', defaultValue: 'https://api.deepseek.com');
+const _aiModel = String.fromEnvironment('AI_MODEL', defaultValue: 'deepseek-chat');
 
 void main() => runApp(const AcademicAdvisorApp());
 
@@ -267,6 +270,71 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     _ => 'مسیرهای تحصیلی و شغلی موردعلاقه را مقایسه کن، مهارت‌های لازم و فرصت‌های واقعی را بررسی کن و یک قدم کم‌هزینه برای تجربه‌کردن مسیر انتخاب کن.',
   };
 
+  Future<String?> _requestAiAnswer(String question) async {
+    final apiKey = _aiApiKey.trim();
+    if (apiKey.isNotEmpty) {
+      var baseUrl = _aiBaseUrl.trim();
+      while (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      }
+      if (!baseUrl.endsWith('/chat/completions')) {
+        baseUrl = '$baseUrl/chat/completions';
+      }
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': _aiModel,
+          'messages': [
+            {
+              'role': 'system',
+              'content': 'تو مربی آموزشی فارسی‌زبان و صبور هستی. پاسخ را متناسب با مقطع تحصیلی کاربر تنظیم کن. ابتدا فهم مسئله را روشن کن، مطالب را مرحله‌به‌مرحله توضیح بده، مثال ساده بزن و در پایان یک سؤال یا تمرین کوتاه برای سنجش فهم بده. اگر اطلاعات کافی نیست، سؤال روشن‌کننده بپرس. برای کودکان ساده و امن توضیح بده. نتیجه یا اطلاعات پذیرش دانشگاه را تضمین نکن.',
+            },
+            {
+              'role': 'user',
+              'content': 'مقطع: $_stage\nموضوع: $_goal\nدرخواست: $question',
+            },
+          ],
+          'temperature': 0.4,
+          'max_tokens': 800,
+          'stream': false,
+        }),
+      ).timeout(const Duration(seconds: 35));
+      if (response.statusCode != 200) {
+        throw const FormatException('AI provider returned an error');
+      }
+      final payload = jsonDecode(response.body);
+      final choices = payload is Map<String, dynamic> ? payload['choices'] : null;
+      final message = choices is List && choices.isNotEmpty && choices.first is Map
+        ? choices.first['message'] : null;
+      final content = message is Map ? message['content'] : null;
+      if (content is! String || content.trim().isEmpty) {
+        throw const FormatException('AI provider returned an invalid response');
+      }
+      return content.trim();
+    }
+
+    final baseUrl = _advisorApiBaseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (baseUrl.isEmpty) return null;
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/advice'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'stage': _stage, 'goal': _goal, 'question': question}),
+    ).timeout(const Duration(seconds: 35));
+    if (response.statusCode != 200) {
+      throw const FormatException('Advisor service returned an error');
+    }
+    final payload = jsonDecode(response.body);
+    final answer = payload is Map<String, dynamic> ? payload['answer'] : null;
+    if (answer is! String || answer.trim().isEmpty) {
+      throw const FormatException('Advisor service returned an invalid response');
+    }
+    return answer.trim();
+  }
+
   Future<void> _askAdvisor() async {
     final question = _questionController.text.trim();
     if (question.isEmpty) {
@@ -274,41 +342,27 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       return;
     }
 
-    setState(() {
-      _answer = 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\n\n'
-        'مقطع: $_stage\nموضوع: $_goal\n\n'
-        'پیشنهاد برای مقطع شما: ${_stageAdvice()}\n\n'
-        'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\n\n'
-        'سؤال شما: «$question»\n'
-        'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\n\n'
-        'این راهنمای قاعده‌محور و عمومی است؛ پاسخ اختصاصی هوش مصنوعی فقط در صورت اتصال موفق سرویس ارائه می‌شود و جایگزین مشاور مدرسه یا متخصص نیست.';
-    });
+    final fallback = 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\n\n'
+      'مقطع: $_stage\nموضوع: $_goal\n\n'
+      'پیشنهاد برای مقطع شما: ${_stageAdvice()}\n\n'
+      'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\n\n'
+      'سؤال شما: «$question»\n'
+      'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\n\n'
+      'این راهنمای قاعده‌محور و عمومی است؛ برای پاسخ اختصاصی مربی هوش مصنوعی، کلید API یا آدرس سرویس باید در ساخت برنامه تنظیم شده باشد.';
+    setState(() => _answer = fallback);
 
-    // No network request is made unless a server URL is explicitly configured at build time.
-    if (_advisorApiBaseUrl.trim().isEmpty) return;
-
+    if (_aiApiKey.trim().isEmpty && _advisorApiBaseUrl.trim().isEmpty) return;
+    if (mounted) setState(() => _answer = 'در حال دریافت پاسخ از مربی هوش مصنوعی…');
     try {
-      final response = await http.post(
-        Uri.parse('${_advisorApiBaseUrl.replaceFirst(RegExp(r'/+$'), '')}/api/advice'),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'stage': _stage, 'goal': _goal, 'question': question}),
-      ).timeout(const Duration(seconds: 35));
-      if (response.statusCode != 200) {
-        throw const FormatException('Advisor service returned an error');
-      }
-      final payload = jsonDecode(response.body);
-      final aiAnswer = payload is Map<String, dynamic> ? payload['answer'] : null;
-      if (aiAnswer is! String || aiAnswer.trim().isEmpty) {
-        throw const FormatException('Advisor service returned an invalid response');
-      }
-      if (!mounted) return;
+      final aiAnswer = await _requestAiAnswer(question);
+      if (!mounted || aiAnswer == null) return;
       setState(() => _answer =
-        'پاسخ مشاور هوش مصنوعی\n\n$aiAnswer\n\n'
-        'پاسخ تولیدشده با هوش مصنوعی ممکن است خطا داشته باشد. اطلاعات مهم آموزشی و انتخاب رشته را با خانواده یا مشاور مدرسه نیز بررسی کن.');
+        'پاسخ مربی هوش مصنوعی\n\n$aiAnswer\n\n'
+        'اگر پاسخ مربوط به تصمیم مهم تحصیلی یا انتخاب رشته است، اطلاعات را با منابع معتبر و خانواده نیز بررسی کن.');
     } catch (_) {
       if (!mounted) return;
       setState(() => _answer =
-        'اتصال به سرویس مشاوره برقرار نشد؛ راهنمای عمومی زیر را فعلاً در نظر بگیر.\n\n$_answer');
+        '$fallback\n\nدر حال حاضر اتصال به مربی هوش مصنوعی برقرار نشد؛ لطفاً بعداً دوباره تلاش کن.');
     }
   }
 
@@ -830,21 +884,19 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ));
     Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
     if (topic == null || !mounted) return;
+
     var aiAnswer = '';
-    var baseUrl = _advisorApiBaseUrl.trim();
-    while (baseUrl.endsWith('/')) { baseUrl = baseUrl.substring(0, baseUrl.length - 1); }
-    if (baseUrl.isNotEmpty) {
+    if (_aiApiKey.trim().isNotEmpty || _advisorApiBaseUrl.trim().isNotEmpty) {
       try {
-        final response = await http.post(Uri.parse('$baseUrl/api/advice'),
-          headers: const {'Content-Type': 'application/json'},
-          body: jsonEncode({'stage': _stage, 'goal': _goal,
-            'question': 'به صورت مربی قدم‌به‌قدم پاسخ بده: ابتدا سرنخ، سپس توضیح مرحله‌ای و در پایان یک سؤال برای سنجش فهم. مبحث: $topic'}))
-          .timeout(const Duration(seconds: 35));
-        if (response.statusCode == 200) {
-          final payload = jsonDecode(response.body);
-          if (payload is Map<String, dynamic> && payload['answer'] is String) aiAnswer = payload['answer'] as String;
-        }
-      } catch (_) { aiAnswer = ''; }
+        aiAnswer = await _requestAiAnswer(
+          'به عنوان مربی قدم‌به‌قدم آموزش بده. مبحث: $topic. '
+          'پاسخ را دقیقاً در سه بخش ارائه کن: ۱) سرنخ بدون لو دادن پاسخ، '
+          '۲) توضیح مرحله‌ای همراه مثال، ۳) یک سؤال کوتاه برای بررسی یادگیری. '
+          'در پایان بخش سوم پاسخ سؤال را فوراً نگو تا دانش‌آموز خودش تلاش کند.',
+        ) ?? '';
+      } catch (_) {
+        aiAnswer = '';
+      }
     }
     if (!mounted) return;
     var step = 0;
@@ -854,10 +906,12 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         final explanation = aiAnswer.isEmpty
           ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر اشتباه شد، علت آن را مشخص کن.'
           : aiAnswer;
+        final check = aiAnswer.isEmpty
+          ? 'بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی به گام قبل برگرد.'
+          : 'حالا خودت یک تمرین مشابه حل کن و دلیل هر گام را توضیح بده. اگر اشتباه کردی، از مربی بخواه فقط سرنخ بعدی را بدهد.';
         return AlertDialog(
           title: Text(step == 0 ? 'گام ۱ · سرنخ' : step == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
-          content: SingleChildScrollView(child: Text(step == 0 ? hint : step == 1 ? explanation :
-            'بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی به گام قبل برگرد.',
+          content: SingleChildScrollView(child: Text(step == 0 ? hint : step == 1 ? explanation : check,
             style: const TextStyle(height: 1.8))),
           actions: [
             if (step > 0) TextButton(onPressed: () => setDialogState(() => step--), child: const Text('گام قبل')),
