@@ -184,10 +184,14 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
               tooltip: 'حذف کار',
               icon: const Icon(Icons.delete_outline_rounded),
               onPressed: () => setState(() {
+                final updatedCompleted = _completedTasks
+                  .where((index) => index != entry.key)
+                  .map((index) => index > entry.key ? index - 1 : index)
+                  .toSet();
                 _studyTasks.removeAt(entry.key);
                 _completedTasks
-                  ..removeWhere((index) => index >= _studyTasks.length)
-                  ..remove(entry.key);
+                  ..clear()
+                  ..addAll(updatedCompleted);
               }),
             ),
           ),
