@@ -86,14 +86,19 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
               Text('${index + 1}. ${_questions[index]}',
                 style: const TextStyle(fontWeight: FontWeight.w800, height: 1.6)),
               const SizedBox(height: 6),
-              ...List.generate(3, (option) => RadioListTile<int>(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                value: option,
+              RadioGroup<int>(
                 groupValue: _answers[index],
-                title: Text(_options[index][option]),
-                onChanged: (value) => setState(() { _answers[index] = value; _showResult = false; }),
-              )),
+                onChanged: (value) => setState(() {
+                  _answers[index] = value;
+                  _showResult = false;
+                }),
+                child: Column(children: List.generate(3, (option) => RadioListTile<int>(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: option,
+                  title: Text(_options[index][option]),
+                ))),
+              ),
             ],
           )),
         )),
@@ -128,7 +133,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _newTaskController = TextEditingController();
   final _notesController = TextEditingController();
   final List<String> _studyTasks = [];
-  final Set<String> _completedTasks = {};
+  final Set<int> _completedTasks = {};
   String _stage = 'متوسطه اول';
   String _goal = 'برنامه‌ریزی درسی';
   String _tab = 'خانه';
