@@ -20,7 +20,7 @@ void main() {
     await tester.tap(find.text('دریافت راهنمایی'));
     await tester.pumpAndSettle();
     expect(find.text('راهنمای پیشنهادی'), findsOneWidget);
-    expect(find.textContaining('هنوز به سرویس هوش مصنوعی متصل نیست'), findsOneWidget);
+    expect(find.textContaining('راهنمای قاعده‌محور و عمومی است'), findsOneWidget);
   });
 
   testWidgets('guidance changes with the selected school stage', (tester) async {
