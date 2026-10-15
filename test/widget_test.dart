@@ -67,6 +67,22 @@ void main() {
     expect(find.textContaining('نمرهٔ هوش'), findsOneWidget);
   });
 
+  testWidgets('exam tracker stores exam date and optional score locally', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.tap(find.text('آزمون‌ها').last);
+    await tester.pumpAndSettle();
+    expect(find.text('هنوز آزمونی ثبت نشده است'), findsOneWidget);
+    await tester.tap(find.text('افزودن آزمون یا امتحان'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).first, 'ریاضی');
+    await tester.tap(find.text('ذخیره آزمون'));
+    await tester.pumpAndSettle();
+    expect(find.text('ریاضی'), findsOneWidget);
+    expect(find.textContaining('تا آزمون'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('study_exams'), contains('ریاضی'));
+  });
+
   testWidgets('bottom navigation opens the study plan page', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     await tester.tap(find.text('برنامه من').last);
