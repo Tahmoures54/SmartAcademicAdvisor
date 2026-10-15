@@ -136,6 +136,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final List<String> _studyTasks = [];
   final Set<int> _completedTasks = {};
   final List<Map<String, String>> _exams = [];
+  final List<Map<String, String>> _studySessions = [];
   bool _localDataLoaded = false;
   Timer? _focusTimer;
   int _focusSecondsRemaining = 25 * 60;
@@ -172,6 +173,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ..addAll((jsonDecode(prefs.getString('study_exams') ?? '[]') as List<dynamic>)
           .whereType<Map<String, dynamic>>()
           .map((exam) => exam.map((key, value) => MapEntry(key, value.toString()))));
+      _studySessions
+        ..clear()
+        ..addAll((jsonDecode(prefs.getString('study_sessions') ?? '[]') as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map((session) => session.map((key, value) => MapEntry(key, value.toString()))));
       _localDataLoaded = true;
     });
   }
@@ -185,6 +191,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _completedTasks.map((index) => index.toString()).toList());
     await prefs.setString('study_notes', _notesController.text);
     await prefs.setString('study_exams', jsonEncode(_exams));
+    await prefs.setString('study_sessions', jsonEncode(_studySessions));
   }
 
   Future<void> _clearSavedData() async {
@@ -211,6 +218,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _studyTasks.clear();
       _completedTasks.clear();
       _exams.clear();
+      _studySessions.clear();
       _notesController.clear();
       _answer = null;
     });
@@ -409,6 +417,151 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     );
   }
 
+
+  Future<void> _addStudySession() async {
+    final subjectController = TextEditingController();
+    final minutesController = TextEditingController(text: '25');
+    int confidence = 3;
+    String? errorText;
+    final session = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('ثبت مطالعه'),
+          content: SingleChildScrollView(child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(controller: subjectController, autofocus: true,
+                decoration: const InputDecoration(labelText: 'نام درس', hintText: 'مثلاً: علوم یا ریاضی')),
+              const SizedBox(height: 12),
+              TextField(controller: minutesController, keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'مدت مطالعه به دقیقه')),
+              const SizedBox(height: 16),
+              const Text('میزان تسلط فعلی خودت را ارزیابی کن', style: TextStyle(fontWeight: FontWeight.w800)),
+              ...List.generate(5, (index) => RadioListTile<int>(
+                contentPadding: EdgeInsets.zero, dense: true, value: index + 1,
+                groupValue: confidence,
+                title: Text(['۱ ـ خیلی کم','۲ ـ کم','۳ ـ متوسط','۴ ـ خوب','۵ ـ خیلی خوب'][index]),
+                onChanged: (value) => setDialogState(() => confidence = value ?? 3),
+              )),
+              if (errorText != null) Text(errorText!, style: const TextStyle(color: Colors.red)),
+            ],
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+            FilledButton(onPressed: () {
+              final subject = subjectController.text.trim();
+              final minutes = int.tryParse(minutesController.text.trim());
+              if (subject.isEmpty) {
+                setDialogState(() => errorText = 'نام درس را وارد کن.');
+                return;
+              }
+              if (minutes == null || minutes < 1 || minutes > 1440) {
+                setDialogState(() => errorText = 'مدت مطالعه باید بین ۱ تا ۱۴۴۰ دقیقه باشد.');
+                return;
+              }
+              Navigator.pop(dialogContext, {
+                'subject': subject, 'minutes': minutes.toString(),
+                'confidence': confidence.toString(), 'date': DateTime.now().toIso8601String(),
+              });
+            }, child: const Text('ثبت مطالعه')),
+          ],
+        ),
+      ),
+    );
+    subjectController.dispose();
+    minutesController.dispose();
+    if (session == null || !mounted) return;
+    setState(() => _studySessions.add(session));
+    await _saveData();
+  }
+
+  Widget _studyProgressSection() {
+    final subjects = <String, List<Map<String, String>>>{};
+    for (final session in _studySessions) {
+      subjects.putIfAbsent(session['subject']!, () => []).add(session);
+    }
+    final totalMinutes = _studySessions.fold<int>(0,
+      (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EAE6))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('گزارش پیشرفت درس‌ها', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        const Text('زمان مطالعه و میزان تسلطی را که خودت احساس می‌کنی ثبت کن؛ این امتیاز خودارزیابی است، نه آزمون علمی.',
+          style: TextStyle(color: Colors.black54, height: 1.7, fontSize: 12)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _progressMetric('جلسه‌های ثبت‌شده', _studySessions.length.toString())),
+          const SizedBox(width: 10),
+          Expanded(child: _progressMetric('مجموع مطالعه', '$totalMinutes دقیقه')),
+        ]),
+        const SizedBox(height: 12),
+        FilledButton.icon(onPressed: _localDataLoaded ? _addStudySession : null,
+          icon: const Icon(Icons.add_chart_rounded), label: const Text('ثبت جلسهٔ مطالعه')),
+        if (_studySessions.isEmpty) ...[
+          const SizedBox(height: 12),
+          const Text('هنوز جلسه‌ای ثبت نشده است.', textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54)),
+        ] else ...[
+          const SizedBox(height: 12),
+          ...subjects.entries.map((entry) {
+            final minutes = entry.value.fold<int>(0,
+              (sum, session) => sum + (int.tryParse(session['minutes'] ?? '') ?? 0));
+            final confidence = entry.value.fold<int>(0,
+              (sum, session) => sum + (int.tryParse(session['confidence'] ?? '') ?? 3)) / entry.value.length;
+            return Padding(padding: const EdgeInsets.only(bottom: 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w800))),
+                  Text('$minutes دقیقه · تسلط ${confidence.toStringAsFixed(1)}/5',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF287D72))),
+                ]),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: confidence / 5, minHeight: 6,
+                  borderRadius: BorderRadius.circular(8), color: const Color(0xFF287D72),
+                  backgroundColor: const Color(0xFFE3F2ED)),
+                Align(alignment: Alignment.centerLeft,
+                  child: Text('${entry.value.length} جلسه',
+                    style: const TextStyle(fontSize: 11, color: Colors.black54))),
+              ]),
+            );
+          }),
+          Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('حذف گزارش پیشرفت؟'),
+                  content: const Text('همهٔ جلسه‌های مطالعهٔ ثبت‌شده حذف می‌شوند.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('انصراف')),
+                    FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حذف')),
+                  ],
+                ));
+              if (confirmed == true && mounted) {
+                setState(() => _studySessions.clear());
+                await _saveData();
+              }
+            },
+            icon: const Icon(Icons.delete_outline_rounded), label: const Text('پاک‌کردن گزارش پیشرفت'))),
+        ],
+      ]),
+    );
+  }
+
+  Widget _progressMetric(String label, String value) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(14)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF287D72))),
+      const SizedBox(height: 4),
+      Text(label, style: const TextStyle(fontSize: 11, height: 1.4)),
+    ]),
+  );
+
   void _addStudyTask() {
     final task = _newTaskController.text.trim();
     if (!_localDataLoaded || task.isEmpty) return;
@@ -434,6 +587,8 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         style: TextStyle(color: Colors.black54, height: 1.7)),
       const SizedBox(height: 18),
       _focusTimerCard(),
+      const SizedBox(height: 16),
+      _studyProgressSection(),
       const SizedBox(height: 16),
       Container(padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
