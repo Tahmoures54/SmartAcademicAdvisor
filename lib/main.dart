@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+const _advisorApiBaseUrl = String.fromEnvironment('ADVISOR_API_BASE_URL');
 
 void main() => runApp(const AcademicAdvisorApp());
 
@@ -216,19 +221,49 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     _ => 'مسیرهای تحصیلی و شغلی موردعلاقه را مقایسه کن، مهارت‌های لازم و فرصت‌های واقعی را بررسی کن و یک قدم کم‌هزینه برای تجربه‌کردن مسیر انتخاب کن.',
   };
 
-  void _askAdvisor() {
+  Future<void> _askAdvisor() async {
     final question = _questionController.text.trim();
+    if (question.isEmpty) {
+      setState(() => _answer = 'لطفاً ابتدا سؤال یا دغدغهٔ تحصیلی‌تان را بنویسید.');
+      return;
+    }
+
     setState(() {
-      _answer = question.isEmpty
-        ? 'لطفاً ابتدا سؤال یا دغدغهٔ تحصیلی‌تان را بنویسید.'
-        : 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\n\n'
-          'مقطع: $_stage\nموضوع: $_goal\n\n'
-          'پیشنهاد برای مقطع شما: ${_stageAdvice()}\n\n'
-          'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\n\n'
-          'سؤال شما: «$question»\n'
-          'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\n\n'
-          'این نسخهٔ اولیه هنوز به سرویس هوش مصنوعی متصل نیست؛ این راهنمای قاعده‌محور و عمومی است و جایگزین مشاور مدرسه یا متخصص نیست.';
+      _answer = 'راهنمای آغازین متناسب با اطلاعات انتخاب‌شده\\n\\n'
+        'مقطع: $_stage\\nموضوع: $_goal\\n\\n'
+        'پیشنهاد برای مقطع شما: ${_stageAdvice()}\\n\\n'
+        'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\\n\\n'
+        'سؤال شما: «$question»\\n'
+        'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\\n\\n'
+        'این نسخهٔ اولیه هنوز به سرویس هوش مصنوعی متصل نیست؛ این راهنمای قاعده‌محور و عمومی است و جایگزین مشاور مدرسه یا متخصص نیست.';
     });
+
+    // No network request is made unless a server URL is explicitly configured at build time.
+    if (_advisorApiBaseUrl.trim().isEmpty) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${_advisorApiBaseUrl.replaceFirst(RegExp(r'/+$'), '')}/api/advice'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'stage': _stage, 'goal': _goal, 'question': question}),
+      ).timeout(const Duration(seconds: 35));
+      if (response.statusCode != 200) {
+        throw const FormatException('Advisor service returned an error');
+      }
+      final payload = jsonDecode(response.body);
+      final aiAnswer = payload is Map<String, dynamic> ? payload['answer'] : null;
+      if (aiAnswer is! String || aiAnswer.trim().isEmpty) {
+        throw const FormatException('Advisor service returned an invalid response');
+      }
+      if (!mounted) return;
+      setState(() => _answer =
+        'پاسخ مشاور هوش مصنوعی\\n\\n$aiAnswer\\n\\n'
+        'پاسخ تولیدشده با هوش مصنوعی ممکن است خطا داشته باشد. اطلاعات مهم آموزشی و انتخاب رشته را با خانواده یا مشاور مدرسه نیز بررسی کن.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _answer =
+        'اتصال به سرویس مشاوره برقرار نشد؛ راهنمای عمومی زیر را فعلاً در نظر بگیر.\\n\\n$_answer');
+    }
   }
 
   @override
