@@ -45,7 +45,8 @@ void main() {
 
   testWidgets('study self-assessment calculates a guidance score', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
-    await tester.ensureVisible(find.text('ارزیابی سریع روش مطالعه'));
+    await tester.scrollUntilVisible(find.text('ارزیابی سریع روش مطالعه'), 300,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('ارزیابی سریع روش مطالعه'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('به‌سختی'), 300,
@@ -88,7 +89,11 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('هنوز کاری ثبت نشده است'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('مثلاً: مرور فصل دوم علوم'), 300,
+      scrollable: find.byType(Scrollable).first);
     await tester.enterText(find.byType(EditableText).first, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
