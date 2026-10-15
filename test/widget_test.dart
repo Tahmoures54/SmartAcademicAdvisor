@@ -21,6 +21,17 @@ void main() {
     expect(find.textContaining('هنوز به سرویس هوش مصنوعی متصل نیست'), findsOneWidget);
   });
 
+  testWidgets('guidance changes with the selected school stage', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.tap(find.text('ابتدایی').first);
+    await tester.enterText(find.byType(EditableText).first, 'چطور بهتر درس بخوانم؟');
+    await tester.ensureVisible(find.text('دریافت راهنمایی'));
+    await tester.tap(find.text('دریافت راهنمایی'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('پیشنهاد برای مقطع شما'), findsOneWidget);
+    expect(find.textContaining('۱۰ تا ۱۵ دقیقه‌ای'), findsOneWidget);
+  });
+
   testWidgets('bottom navigation opens the study plan page', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     await tester.tap(find.text('برنامه من').last);
