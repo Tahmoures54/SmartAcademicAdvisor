@@ -439,12 +439,16 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 decoration: const InputDecoration(labelText: 'مدت مطالعه به دقیقه')),
               const SizedBox(height: 16),
               const Text('میزان تسلط فعلی خودت را ارزیابی کن', style: TextStyle(fontWeight: FontWeight.w800)),
-              ...List.generate(5, (index) => RadioListTile<int>(
-                contentPadding: EdgeInsets.zero, dense: true, value: index + 1,
+              RadioGroup<int>(
                 groupValue: confidence,
-                title: Text(['۱ ـ خیلی کم','۲ ـ کم','۳ ـ متوسط','۴ ـ خوب','۵ ـ خیلی خوب'][index]),
                 onChanged: (value) => setDialogState(() => confidence = value ?? 3),
-              )),
+                child: Column(children: List.generate(5, (index) => RadioListTile<int>(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: index + 1,
+                  title: Text(['۱ ـ خیلی کم','۲ ـ کم','۳ ـ متوسط','۴ ـ خوب','۵ ـ خیلی خوب'][index]),
+                ))),
+              ),
               if (errorText != null) Text(errorText!, style: const TextStyle(color: Colors.red)),
             ],
           )),
