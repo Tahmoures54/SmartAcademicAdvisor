@@ -738,24 +738,87 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
 
   Future<void> _openStepTutor() async {
     final questionController = TextEditingController();
-    final result = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('مربی آموزشی قدم‌به‌قدم'),
-      content: TextField(controller: questionController, minLines: 2, maxLines: 5,
-        decoration: const InputDecoration(labelText: 'سؤال یا مبحث', hintText: 'مثلاً کسرها را چطور حل کنم؟')),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
-        FilledButton(onPressed: () {
-          if (questionController.text.trim().isNotEmpty) Navigator.pop(dialogContext, questionController.text.trim());
-        }, child: const Text('شروع یادگیری')),
-      ]));
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('مربی آموزشی قدم‌به‌قدم'),
+        content: TextField(controller: questionController, minLines: 2, maxLines: 5,
+          decoration: const InputDecoration(labelText: 'سؤال یا مبحث', hintText: 'مثلاً کسرها را چطور حل کنم؟')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('انصراف')),
+          FilledButton(onPressed: () {
+            if (questionController.text.trim().isNotEmpty) {
+              Navigator.pop(dialogContext, questionController.text.trim());
+            }
+          }, child: const Text('شروع یادگیری')),
+        ],
+      ),
+    );
     Future<void>.delayed(const Duration(milliseconds: 300), questionController.dispose);
     if (result == null || !mounted) return;
     var stage = 0;
     var aiAnswer = '';
-    if (_advisorApiBaseUrl.trim().isNotEmpty) {
+    var baseUrl = _advisorApiBaseUrl.trim();
+    while (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    }
+    if (baseUrl.isNotEmpty) {
       try {
         final response = await http.post(
-          Uri.parse('${_advisorApiBaseUrl.replaceFirst(RegExp(r'/+
+          Uri.parse('$baseUrl/api/advice'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'stage': _stage,
+            'goal': _goal,
+            'question': 'مثل مربی آموزشی مرحله‌به‌مرحله عمل کن. ابتدا یک سرنخ کوتاه بده، سپس روش را مرحله‌ای توضیح بده و در پایان یک سؤال برای بررسی فهم بپرس. مبحث: $result',
+          }),
+        ).timeout(const Duration(seconds: 35));
+        if (response.statusCode == 200) {
+          final payload = jsonDecode(response.body);
+          if (payload is Map<String, dynamic> && payload['answer'] is String) {
+            aiAnswer = payload['answer'] as String;
+          }
+        }
+      } catch (_) {
+        aiAnswer = '';
+      }
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final offlineHint = 'ابتدا مسئله را به بخش‌های کوچک تقسیم کن و مشخص کن چه چیزی را می‌دانی و چه چیزی را باید پیدا کنی.\n\nسرنخ: برای «$result» یک مثال ساده بساز و قبل از دیدن پاسخ، روش خودت را توضیح بده.';
+          final explanation = aiAnswer.isEmpty
+            ? 'راهنمای آفلاین: اطلاعات داده‌شده را فهرست کن، یک گام کوچک حل کن، نتیجه را بررسی کن و سپس سراغ گام بعد برو. اگر پاسخ اشتباه شد، مشخص کن اشتباه از فهم مفهوم بوده یا از محاسبه.'
+            : aiAnswer;
+          return AlertDialog(
+            title: Text(stage == 0 ? 'گام ۱ · سرنخ' : stage == 1 ? 'گام ۲ · توضیح' : 'گام ۳ · بررسی یادگیری'),
+            content: SingleChildScrollView(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (stage == 0) Text(offlineHint, style: const TextStyle(height: 1.8))
+                else if (stage == 1) Text(explanation, style: const TextStyle(height: 1.8))
+                else const Text('بدون نگاه‌کردن به توضیح، روش را با زبان خودت بیان کن یا یک مثال مشابه حل کن. اگر گیر کردی، دوباره به گام توضیح برگرد.', style: TextStyle(height: 1.8)),
+                const SizedBox(height: 10),
+                Text('مبحث: $result', style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w800)),
+                if (aiAnswer.isEmpty) const Text('این راهنمای عمومی آفلاین است؛ سرویس هوش مصنوعی تنظیم نشده یا در دسترس نبود.', style: TextStyle(color: Colors.black54, fontSize: 11)),
+              ],
+            )),
+            actions: [
+              if (stage > 0) TextButton(onPressed: () => setDialogState(() => stage--), child: const Text('گام قبل')),
+              if (stage < 2) FilledButton(onPressed: () => setDialogState(() => stage++),
+                child: Text(stage == 0 ? 'دیدن توضیح' : 'بررسی یادگیری')),
+              if (stage == 2) FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('پایان')),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _studyProgressSection() {
     final subjects = <String, List<Map<String, String>>>{};
     for (final session in _studySessions) {
       subjects.putIfAbsent(session['subject']!, () => []).add(session);
