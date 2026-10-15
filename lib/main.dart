@@ -61,8 +61,11 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
   @override
   Widget build(BuildContext context) {
     final answered = _answers.whereType<int>().length;
-    final score = _answers.asMap().entries.fold<int>(0, (sum, entry) =>
-      sum + (entry.key == 1 ? 2 - entry.value! : entry.value!));
+    final score = _answers.asMap().entries.fold<int>(0, (sum, entry) {
+      final answer = entry.value;
+      if (answer == null) return sum;
+      return sum + (entry.key == 1 ? 2 - answer : answer);
+    });
     final complete = answered == _questions.length;
     final advice = score <= 3
       ? 'از زمان کوتاه شروع کن، هر بار یک هدف کوچک تعیین کن و پس از مطالعه، مطلب را با زبان خودت توضیح بده.'
