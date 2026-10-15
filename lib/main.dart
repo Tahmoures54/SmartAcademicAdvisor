@@ -675,7 +675,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
             title: Text(exam['subject']!, style: const TextStyle(fontWeight: FontWeight.w800)),
             subtitle: Padding(padding: const EdgeInsets.only(top: 6),
               child: Text('${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}  •  $countdown'
-                '${score.isEmpty ? '' : '\\nنمره: $score از ۲۰'}',
+                '${score.isEmpty ? '' : '\nنمره: $score از ۲۰'}',
                 style: const TextStyle(height: 1.6))),
             isThreeLine: score.isNotEmpty,
             trailing: IconButton(
