@@ -120,6 +120,8 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    expect(find.text('برنامهٔ هفت روز آینده'), findsOneWidget);
+    expect(find.text('دوشنبه'), findsWidgets);
     await tester.scrollUntilVisible(find.text('هنوز کاری ثبت نشده است'), 300,
       scrollable: find.byType(Scrollable).first);
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
