@@ -623,7 +623,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       )));
     if (grade == null || !mounted) return;
     final previous = int.tryParse(card['interval'] ?? '0') ?? 0;
-    final interval = grade ? (previous == 0 ? 1 : previous == 1 ? 3 : (previous * 2).clamp(1, 60)) : 1;
+    final interval = grade ? (previous == 0 ? 1 : previous == 1 ? 3 : (previous * 2).clamp(1, 60).toInt()) : 1;
     final dueDate = DateTime.now().add(Duration(days: interval));
     setState(() {
       card['interval'] = interval.toString();
@@ -693,7 +693,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       'تحلیل اشتباه‌ها و جمع‌بندی $subject · \${(result * 25 / 100).round()} دقیقه',
     ];
     final deadline = exams.isEmpty ? today.add(const Duration(days: 2)) : _dayOnly(DateTime.parse(exams.first['date']!));
-    final span = deadline.difference(today).inDays.clamp(0, 6);
+    final span = deadline.difference(today).inDays.clamp(0, 6).toInt();
     setState(() {
       for (var i = 0; i < tasks.length; i++) {
         if (!_studyTasks.contains(tasks[i])) _studyTasks.add(tasks[i]);
