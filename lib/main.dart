@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -136,6 +137,9 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final Set<int> _completedTasks = {};
   final List<Map<String, String>> _exams = [];
   bool _localDataLoaded = false;
+  Timer? _focusTimer;
+  int _focusSecondsRemaining = 25 * 60;
+  bool _focusRunning = false;
   String _stage = 'متوسطه اول';
   String _goal = 'برنامه‌ریزی درسی';
   String _tab = 'خانه';
@@ -217,6 +221,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     _questionController.dispose();
     _newTaskController.dispose();
     _notesController.dispose();
+    _focusTimer?.cancel();
     super.dispose();
   }
 
@@ -325,6 +330,85 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ),
   );
 
+  void _toggleFocusTimer() {
+    if (_focusRunning) {
+      _focusTimer?.cancel();
+      setState(() => _focusRunning = false);
+      return;
+    }
+    if (_focusSecondsRemaining <= 0) {
+      setState(() => _focusSecondsRemaining = 25 * 60);
+    }
+    setState(() => _focusRunning = true);
+    _focusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_focusSecondsRemaining <= 1) {
+        timer.cancel();
+        setState(() {
+          _focusSecondsRemaining = 0;
+          _focusRunning = false;
+        });
+      } else {
+        setState(() => _focusSecondsRemaining--);
+      }
+    });
+  }
+
+  void _resetFocusTimer() {
+    _focusTimer?.cancel();
+    setState(() {
+      _focusRunning = false;
+      _focusSecondsRemaining = 25 * 60;
+    });
+  }
+
+  Widget _focusTimerCard() {
+    final minutes = (_focusSecondsRemaining ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_focusSecondsRemaining % 60).toString().padLeft(2, '0');
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2ED),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Row(children: [
+          Icon(Icons.timer_outlined, color: Color(0xFF287D72)),
+          SizedBox(width: 8),
+          Expanded(child: Text('زمان تمرکز',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
+          Text('۲۵ دقیقه', style: TextStyle(color: Color(0xFF287D72))),
+        ]),
+        const SizedBox(height: 12),
+        Text('$minutes:$seconds',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900,
+            color: Color(0xFF287D72), fontFeatures: [FontFeature.tabularFigures()])),
+        const SizedBox(height: 4),
+        Text(_focusSecondsRemaining == 0
+          ? 'آفرین! یک نوبت تمرکز تمام شد؛ کمی استراحت کن.'
+          : _focusRunning ? 'فقط روی یک کار تمرکز کن و اعلان‌ها را کنار بگذار.'
+          : 'یک کار انتخاب کن و وقتی آماده‌ای شروع کن.',
+          textAlign: TextAlign.center, style: const TextStyle(height: 1.6)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: FilledButton.icon(
+            onPressed: _toggleFocusTimer,
+            icon: Icon(_focusRunning ? Icons.pause_rounded : Icons.play_arrow_rounded),
+            label: Text(_focusRunning ? 'مکث' : _focusSecondsRemaining == 0 ? 'دوباره شروع کن' : 'شروع تمرکز'))),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            onPressed: _resetFocusTimer,
+            tooltip: 'شروع دوباره از ۲۵ دقیقه',
+            icon: const Icon(Icons.restart_alt_rounded)),
+        ]),
+      ]),
+    );
+  }
+
   void _addStudyTask() {
     final task = _newTaskController.text.trim();
     if (!_localDataLoaded || task.isEmpty) return;
@@ -349,6 +433,8 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       const Text('کارهای درسی را ثبت کن و پس از انجام، تیک بزن.',
         style: TextStyle(color: Colors.black54, height: 1.7)),
       const SizedBox(height: 18),
+      _focusTimerCard(),
+      const SizedBox(height: 16),
       Container(padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFE2EAE6))),
