@@ -199,8 +199,6 @@ void main() {
   testWidgets('step tutor guides learner through three stages offline', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
-      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
