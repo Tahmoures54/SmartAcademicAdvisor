@@ -138,8 +138,6 @@ void main() {
     expect(find.byTooltip('تنظیم موعد'), findsOneWidget);
     expect(find.textContaining('عقب‌افتاده:'), findsOneWidget);
   });
-}
-
 
   testWidgets('planner exposes weekly report, spaced repetition and adaptive plan', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
@@ -220,3 +218,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('گام ۳ · بررسی یادگیری'), findsOneWidget);
   });
+}
