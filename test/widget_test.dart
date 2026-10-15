@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({});
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('shows academic stages and guidance form', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     expect(find.text('همراه تحصیلی'), findsOneWidget);
