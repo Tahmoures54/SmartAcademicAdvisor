@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show EditableText;
+import 'package:flutter/material.dart' show EditableText, Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
@@ -82,3 +82,4 @@ void main() {
     expect(prefs.getStringList('study_tasks'), contains('مرور فصل دوم علوم'));
   });
 }
+
