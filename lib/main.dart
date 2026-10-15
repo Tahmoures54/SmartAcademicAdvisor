@@ -386,7 +386,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         Text('$minutes:$seconds',
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900,
-            color: Color(0xFF287D72), fontFeatures: [FontFeature.tabularFigures()])),
+            color: Color(0xFF287D72))),
         const SizedBox(height: 4),
         Text(_focusSecondsRemaining == 0
           ? 'آفرین! یک نوبت تمرکز تمام شد؛ کمی استراحت کن.'
