@@ -20,4 +20,12 @@ void main() {
     expect(find.text('راهنمای پیشنهادی'), findsOneWidget);
     expect(find.textContaining('هنوز به سرویس هوش مصنوعی متصل نیست'), findsOneWidget);
   });
+
+  testWidgets('bottom navigation opens the study plan page', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.tap(find.text('برنامه من').last);
+    await tester.pumpAndSettle();
+    expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    expect(find.text('این بخش در حال توسعه است؛ فعلاً اطلاعاتی ذخیره نمی‌شود.'), findsOneWidget);
+  });
 }
