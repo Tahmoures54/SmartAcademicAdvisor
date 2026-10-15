@@ -140,3 +140,77 @@ void main() {
   });
 }
 
+
+  testWidgets('planner exposes weekly report, spaced repetition and adaptive plan', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('برنامه من').last);
+    await tester.pumpAndSettle();
+    expect(find.text('گزارش هفتگی پیشرفت'), findsOneWidget);
+    expect(find.text('مرور فاصله‌دار و نقاط ضعف'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
+      scrollable: find.byType(Scrollable).first);
+    expect(find.text('ساخت برنامهٔ پیشنهادی'), findsOneWidget);
+    expect(find.text('مربی آموزشی قدم‌به‌قدم'), findsOneWidget);
+  });
+
+  testWidgets('review cards save locally and support spaced review', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('برنامه من').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('افزودن سؤال برای مرور'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).at(0), 'زیست');
+    await tester.enterText(find.byType(EditableText).at(1), 'میتوکندری چه می‌کند؟');
+    await tester.enterText(find.byType(EditableText).at(2), 'در تولید انرژی سلول نقش دارد.');
+    await tester.tap(find.text('ذخیره کارت'));
+    await tester.pumpAndSettle();
+    expect(find.text('میتوکندری چه می‌کند؟'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('study_review_cards'), contains('میتوکندری'));
+    await tester.tap(find.byTooltip('مرور سؤال').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('نمایش پاسخ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('بلد بودم'));
+    await tester.pumpAndSettle();
+    expect(prefs.getString('study_review_cards'), contains('"interval":"1"'));
+  });
+
+  testWidgets('adaptive study plan creates dated study tasks', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('برنامه من').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
+      scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('ساخت برنامهٔ پیشنهادی'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ساخت برنامه').last);
+    await tester.pumpAndSettle();
+    expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    expect(find.textContaining('مرور فعال'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('study_tasks'), isNotEmpty);
+    expect(prefs.getString('study_task_due_dates'), contains('یادآوری'));
+  });
+
+  testWidgets('step tutor guides learner through three stages offline', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
+      scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('مربی آموزشی قدم‌به‌قدم'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).last, 'کسرها');
+    await tester.tap(find.text('شروع یادگیری'));
+    await tester.pumpAndSettle();
+    expect(find.text('گام ۱ · سرنخ'), findsOneWidget);
+    await tester.tap(find.text('دیدن توضیح'));
+    await tester.pumpAndSettle();
+    expect(find.text('گام ۲ · توضیح'), findsOneWidget);
+    await tester.tap(find.text('بررسی یادگیری'));
+    await tester.pumpAndSettle();
+    expect(find.text('گام ۳ · بررسی یادگیری'), findsOneWidget);
+  });
