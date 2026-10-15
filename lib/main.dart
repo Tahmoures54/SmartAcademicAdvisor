@@ -135,6 +135,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _notesController = TextEditingController();
   final List<String> _studyTasks = [];
   final Set<int> _completedTasks = {};
+  final Map<String, String> _taskDueDates = {};
   final List<Map<String, String>> _exams = [];
   final List<Map<String, String>> _studySessions = [];
   bool _localDataLoaded = false;
@@ -167,6 +168,10 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ..clear()
         ..addAll((prefs.getStringList('completed_tasks') ?? [])
           .map(int.tryParse).whereType<int>());
+      _taskDueDates
+        ..clear()
+        ..addAll((jsonDecode(prefs.getString('study_task_due_dates') ?? '{}') as Map<String, dynamic>)
+          .map((key, value) => MapEntry(key, value.toString())));
       _notesController.text = prefs.getString('study_notes') ?? '';
       _exams
         ..clear()
@@ -189,6 +194,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     await prefs.setStringList('study_tasks', _studyTasks);
     await prefs.setStringList('completed_tasks',
       _completedTasks.map((index) => index.toString()).toList());
+    await prefs.setString('study_task_due_dates', jsonEncode(_taskDueDates));
     await prefs.setString('study_notes', _notesController.text);
     await prefs.setString('study_exams', jsonEncode(_exams));
     await prefs.setString('study_sessions', jsonEncode(_studySessions));
@@ -217,6 +223,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _goal = 'برنامه‌ریزی درسی';
       _studyTasks.clear();
       _completedTasks.clear();
+      _taskDueDates.clear();
       _exams.clear();
       _studySessions.clear();
       _notesController.clear();
@@ -566,6 +573,34 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ]),
   );
 
+  Future<void> _setTaskDueDate(String task) async {
+    final existing = _taskDueDates[task];
+    final initial = existing == null ? DateTime.now().add(const Duration(days: 1)) : DateTime.parse(existing);
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(DateTime.now().subtract(const Duration(days: 365))) ? DateTime.now() : initial,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: 'موعد انجام کار را انتخاب کن',
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _taskDueDates[task] = DateTime(selected.year, selected.month, selected.day).toIso8601String());
+    await _saveData();
+  }
+
+  String _taskScheduleLabel(String task) {
+    final raw = _taskDueDates[task];
+    if (raw == null) return 'بدون موعد';
+    final date = DateTime.parse(raw);
+    final today = DateTime.now();
+    final days = DateTime(date.year, date.month, date.day).difference(DateTime(today.year, today.month, today.day)).inDays;
+    final dateText = '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+    if (_completedTasks.contains(_studyTasks.indexOf(task))) return 'انجام‌شده · $dateText';
+    if (days < 0) return 'عقب‌افتاده · $dateText';
+    if (days == 0) return 'موعد امروز · $dateText';
+    if (days == 1) return 'موعد فردا · $dateText';
+    return 'موعد $dateText · $days روز دیگر';
+  }
   void _addStudyTask() {
     final task = _newTaskController.text.trim();
     if (!_localDataLoaded || task.isEmpty) return;
@@ -615,6 +650,30 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ]),
       ),
       const SizedBox(height: 18),
+      Builder(builder: (context) {
+        final today = DateTime.now();
+        final overdue = _studyTasks.asMap().entries.where((entry) {
+          if (_completedTasks.contains(entry.key)) return false;
+          final raw = _taskDueDates[entry.value];
+          if (raw == null) return false;
+          final date = DateTime.parse(raw);
+          return DateTime(date.year, date.month, date.day).isBefore(DateTime(today.year, today.month, today.day));
+        }).length;
+        final dueToday = _studyTasks.asMap().entries.where((entry) {
+          if (_completedTasks.contains(entry.key)) return false;
+          final raw = _taskDueDates[entry.value];
+          if (raw == null) return false;
+          final date = DateTime.parse(raw);
+          return date.year == today.year && date.month == today.month && date.day == today.day;
+        }).length;
+        return Container(padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0xFFE3F2ED), borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            Expanded(child: Text('موعد امروز: $dueToday', style: const TextStyle(fontWeight: FontWeight.w800))),
+            Expanded(child: Text('عقب‌افتاده: $overdue', style: TextStyle(fontWeight: FontWeight.w800, color: overdue > 0 ? Colors.red.shade700 : const Color(0xFF287D72)))),
+          ]));
+      }),
+      const SizedBox(height: 12),
       Row(children: [
         const Expanded(child: Text('کارهای امروز',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
@@ -647,8 +706,13 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
               _saveData();
             },
             title: Text(entry.value),
+            subtitle: Text(_taskScheduleLabel(entry.value),
+              style: TextStyle(height: 1.5, color: _taskDueDates[entry.value] != null && !_completedTasks.contains(entry.key) && DateTime.parse(_taskDueDates[entry.value]!).isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)) ? Colors.red.shade700 : Colors.black54)),
             controlAffinity: ListTileControlAffinity.leading,
-            secondary: IconButton(
+            secondary: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(tooltip: 'تنظیم موعد', icon: const Icon(Icons.calendar_month_outlined),
+                onPressed: () => _setTaskDueDate(entry.value)),
+              IconButton(
               tooltip: 'حذف کار',
               icon: const Icon(Icons.delete_outline_rounded),
               onPressed: () {
@@ -662,9 +726,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                     ..clear()
                     ..addAll(updatedCompleted);
                 });
+                _taskDueDates.remove(entry.value);
                 _saveData();
               }
-            ),
+              ),
+            ]),
           ),
         )),
       const SizedBox(height: 12),
@@ -775,9 +841,18 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       'حل چند سؤال تمرینی از $subject',
       'تحلیل اشتباه‌ها و مرور نهایی $subject',
     ];
+    final today = DateTime.now();
+    final daySpan = daysRemaining.clamp(0, 3);
+    final dueDates = [
+      today.add(Duration(days: (daySpan / 3).floor())),
+      today.add(Duration(days: (daySpan * 2 / 3).floor())),
+      date,
+    ];
     setState(() {
-      for (final task in tasks) {
+      for (var i = 0; i < tasks.length; i++) {
+        final task = tasks[i];
         if (!_studyTasks.contains(task)) _studyTasks.add(task);
+        _taskDueDates[task] = DateTime(dueDates[i].year, dueDates[i].month, dueDates[i].day).toIso8601String();
       }
       _tab = 'برنامه من';
     });
