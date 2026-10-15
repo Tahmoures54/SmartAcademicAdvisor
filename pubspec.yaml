@@ -1,0 +1,23 @@
+name: smart_academic_advisor
+description: مشاور تحصیلی همراه دانش‌آموزان از ابتدایی تا دانشگاه و پس از فارغ‌التحصیلی
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
