@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show EditableText;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_academic_advisor/main.dart';
 
