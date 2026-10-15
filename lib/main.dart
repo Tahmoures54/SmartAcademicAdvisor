@@ -28,6 +28,93 @@ class AdvisorHomeScreen extends StatefulWidget {
   State<AdvisorHomeScreen> createState() => _AdvisorHomeScreenState();
 }
 
+class StudyAssessmentPage extends StatefulWidget {
+  const StudyAssessmentPage({super.key});
+
+  @override
+  State<StudyAssessmentPage> createState() => _StudyAssessmentPageState();
+}
+
+class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
+  final List<int?> _answers = List<int?>.filled(4, null);
+  static const _questions = [
+    'وقتی درس را می‌خوانی، چقدر می‌توانی بدون نگاه‌کردن به کتاب آن را توضیح بدهی؟',
+    'چقدر زود مطالبی را که قبلاً خوانده‌ای فراموش می‌کنی؟',
+    'وقتی پاسخ یک سؤال را اشتباه می‌دهی، چقدر علت اشتباه را بررسی می‌کنی؟',
+    'برنامهٔ مطالعه‌ات چقدر با زمان و انرژی واقعی تو هماهنگ است؟',
+  ];
+  static const _options = [
+    ['به‌سختی', 'تا حدی', 'معمولاً خوب'],
+    ['خیلی زود', 'گاهی', 'با مرور معمولاً یادم می‌ماند'],
+    ['به‌ندرت', 'گاهی', 'تقریباً همیشه'],
+    ['اغلب سنگین است', 'تا حدی هماهنگ است', 'واقع‌بینانه و قابل اجراست'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final answered = _answers.whereType<int>().length;
+    final score = _answers.whereType<int>().fold<int>(0, (sum, value) => sum + value);
+    final complete = answered == _questions.length;
+    final advice = score <= 3
+      ? 'از زمان کوتاه شروع کن، هر بار یک هدف کوچک تعیین کن و پس از مطالعه، مطلب را با زبان خودت توضیح بده.'
+      : score <= 6
+        ? 'روش مطالعه‌ات چند نقطهٔ قوت دارد. مرور فاصله‌دار و بررسی اشتباه‌ها را منظم‌تر کن و برنامه را با انرژی واقعی خود هماهنگ نگه دار.'
+        : 'پایهٔ مناسبی برای مطالعهٔ مؤثر داری. برای تثبیت نتیجه، از خودآزمایی، مرور دوره‌ای و تحلیل اشتباه‌ها استفاده کن.';
+    return Scaffold(
+      appBar: AppBar(title: const Text('ارزیابی روش مطالعه')),
+      body: ListView(padding: const EdgeInsets.all(18), children: [
+        const Text('به چهار پرسش زیر صادقانه پاسخ بده. این ارزیابی کوتاه، آزمون علمی یا تشخیص تخصصی نیست؛ فقط برای شروع گفت‌وگو دربارهٔ عادت‌های مطالعه است.',
+          style: TextStyle(height: 1.8)),
+        const SizedBox(height: 12),
+        LinearProgressIndicator(value: answered / _questions.length,
+          minHeight: 6, borderRadius: BorderRadius.circular(8)),
+        const SizedBox(height: 6),
+        Text('$answered از ${_questions.length} پرسش پاسخ داده شده'),
+        const SizedBox(height: 12),
+        ...List.generate(_questions.length, (index) => Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(padding: const EdgeInsets.all(14), child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${index + 1}. ${_questions[index]}',
+                style: const TextStyle(fontWeight: FontWeight.w800, height: 1.6)),
+              const SizedBox(height: 6),
+              ...List.generate(3, (option) => RadioListTile<int>(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: option,
+                groupValue: _answers[index],
+                title: Text(_options[index][option]),
+                onChanged: (value) => setState(() => _answers[index] = value),
+              )),
+            ],
+          )),
+        )),
+        FilledButton.icon(
+          onPressed: complete ? () => setState(() {}) : null,
+          icon: const Icon(Icons.fact_check_outlined),
+          label: const Text('نمایش جمع‌بندی'),
+        ),
+        if (complete) ...[
+          const SizedBox(height: 14),
+          Container(padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(color: const Color(0xFFE3F2ED),
+              borderRadius: BorderRadius.circular(18)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('امتیاز راهنمایی: $score از 8',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 8),
+              Text(advice, style: const TextStyle(height: 1.8)),
+              const SizedBox(height: 8),
+              const Text('این امتیاز نمرهٔ هوش یا توانایی تحصیلی نیست و نباید به‌تنهایی مبنای انتخاب رشته یا تصمیم مهم قرار بگیرد.',
+                style: TextStyle(fontSize: 12, height: 1.7, color: Colors.black54)),
+            ]),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
 class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _questionController = TextEditingController();
   final _newTaskController = TextEditingController();
@@ -91,6 +178,14 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ]),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:2,crossAxisSpacing:12,mainAxisSpacing:12,childAspectRatio:1.42),
       )),
+      SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(18,18,18,0),
+        child: OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => const StudyAssessmentPage())),
+          icon: const Icon(Icons.insights_rounded),
+          label: const Padding(padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text('ارزیابی سریع روش مطالعه')),
+        ))),
       const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(18,24,18,8),
         child: Text('از مشاور تحصیلی بپرس',style:TextStyle(fontSize:19,fontWeight:FontWeight.w800)))),
       SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.symmetric(horizontal:18),child:_questionCard())),
