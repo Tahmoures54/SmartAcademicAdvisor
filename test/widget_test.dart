@@ -42,6 +42,6 @@ void main() {
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
     expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
-    expect(find.text('۰ از ۱ انجام‌شده'), findsOneWidget);
+    expect(find.text('0 از 1 انجام‌شده'), findsOneWidget);
   });
 }
