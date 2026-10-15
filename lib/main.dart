@@ -524,11 +524,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         const Text('گزارش هفتگی پیشرفت', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Text('این هفته: $current دقیقه مطالعه', style: const TextStyle(fontWeight: FontWeight.w800)),
-        Text('هفتهٔ قبل: $previous دقیقه · \${delta > 0 ? 'افزایش' : delta < 0 ? 'کاهش' : 'بدون تغییر'} \${delta.abs()} دقیقه',
+        Text('هفتهٔ قبل: $previous دقیقه · ${delta > 0 ? 'افزایش' : delta < 0 ? 'کاهش' : 'بدون تغییر'} ${delta.abs()} دقیقه',
           style: const TextStyle(color: Color(0xFF287D72))),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: _progressMetric('کارهای انجام‌شده', '\${_completedTasks.length} از \${_studyTasks.length}')),
+          Expanded(child: _progressMetric('کارهای انجام‌شده', '${_completedTasks.length} از ${_studyTasks.length}')),
           const SizedBox(width: 10),
           Expanded(child: _progressMetric('پیشرفت برنامه', '$percent٪')),
         ]),
@@ -554,7 +554,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           const Expanded(child: Text('مرور فاصله‌دار و نقاط ضعف', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
-          Text('\${due.length} مرور', style: const TextStyle(color: Color(0xFF287D72))),
+          Text('${due.length} مرور', style: const TextStyle(color: Color(0xFF287D72))),
         ]),
         const SizedBox(height: 6),
         const Text('سؤال و پاسخ خودت را ثبت کن. موارد دشوار زودتر و مواردی که بلد بودی با فاصلهٔ بیشتر مرور می‌شوند.',
@@ -569,7 +569,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
           return Card(color: isDue ? const Color(0xFFEAF5F1) : const Color(0xFFF7F9F8),
             child: ListTile(
               title: Text(card['prompt'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-              subtitle: Text('\${card['subject'] ?? 'درس'} · \${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: \${date.year}/\${date.month}/\${date.day}'}'),
+              subtitle: Text('${card['subject'] ?? 'درس'} · ${isDue ? 'آمادهٔ مرور' : 'مرور بعدی: ${date!.year}/${date.month}/${date.day}'}'),
               trailing: IconButton(tooltip: 'مرور سؤال', icon: const Icon(Icons.play_circle_outline),
                 onPressed: () => _reviewOneCard(card)),
             ));
@@ -633,7 +633,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     });
     await _saveData();
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(grade ? 'مرور بعدی \${dueDate.year}/\${dueDate.month}/\${dueDate.day} است.' : 'این سؤال فردا دوباره مرور می‌شود.')));
+      content: Text(grade ? 'مرور بعدی ${dueDate.year}/${dueDate.month}/${dueDate.day} است.' : 'این سؤال فردا دوباره مرور می‌شود.')));
   }
 
   Widget _adaptivePlanCard() => Container(
@@ -688,9 +688,9 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     }
     if (subject.isEmpty) subject = 'درس انتخابی';
     final tasks = [
-      'مرور فعال $subject · \${(result * 30 / 100).round()} دقیقه',
-      'تمرین و حل سؤال $subject · \${(result * 45 / 100).round()} دقیقه',
-      'تحلیل اشتباه‌ها و جمع‌بندی $subject · \${(result * 25 / 100).round()} دقیقه',
+      'مرور فعال $subject · ${(result * 30 / 100).round()} دقیقه',
+      'تمرین و حل سؤال $subject · ${(result * 45 / 100).round()} دقیقه',
+      'تحلیل اشتباه‌ها و جمع‌بندی $subject · ${(result * 25 / 100).round()} دقیقه',
     ];
     final deadline = exams.isEmpty ? today.add(const Duration(days: 2)) : _dayOnly(DateTime.parse(exams.first['date']!));
     final span = deadline.difference(today).inDays.clamp(0, 6).toInt();
