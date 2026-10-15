@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+
+void main() => runApp(const AcademicAdvisorApp());
+
+class AcademicAdvisorApp extends StatelessWidget {
+  const AcademicAdvisorApp({super.key});
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    title: 'همراه تحصیلی',
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF287D72)),
+      scaffoldBackgroundColor: const Color(0xFFF5F8F7),
+      cardTheme: CardThemeData(
+        color: Colors.white, elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        margin: EdgeInsets.zero,
+      ),
+    ),
+    home: const Directionality(textDirection: TextDirection.rtl, child: AdvisorHomeScreen()),
+  );
+}
+
+class AdvisorHomeScreen extends StatefulWidget {
+  const AdvisorHomeScreen({super.key});
+  @override
+  State<AdvisorHomeScreen> createState() => _AdvisorHomeScreenState();
+}
+
+class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
+  final _questionController = TextEditingController();
+  String _stage = 'متوسطه اول';
+  String _goal = 'برنامه‌ریزی درسی';
+  String _tab = 'خانه';
+  bool _showGuide = false;
+  String? _answer;
+  static const stages = ['ابتدایی', 'متوسطه اول', 'متوسطه دوم', 'کنکوری', 'دانشجو', 'فارغ‌التحصیل'];
+
+  @override
+  void dispose() { _questionController.dispose(); super.dispose(); }
+
+  void _askAdvisor() {
+    final question = _questionController.text.trim();
+    setState(() {
+      _answer = question.isEmpty
+        ? 'لطفاً ابتدا سؤال یا دغدغهٔ تحصیلی‌تان را بنویسید.'
+        : 'پیش‌نویس راهنمایی برای شما\n\nمقطع: $_stage\nموضوع: $_goal\n\n'
+          'برای شروع، هدف خود را مشخص کنید، زمان و امکانات فعلی را در نظر بگیرید و یک قدم کوچک و قابل انجام برای امروز انتخاب کنید.\n\n'
+          'سؤال شما: «$question»\n\n'
+          'این نسخهٔ اولیه هنوز به سرویس هوش مصنوعی متصل نیست؛ متن بالا راهنمای عمومی است، نه تحلیل اختصاصی هوش مصنوعی.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(child: CustomScrollView(slivers: [
+      SliverToBoxAdapter(child: _header()),
+      SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(18,18,18,12), child: _welcomeCard())),
+      SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.symmetric(horizontal:18), child: _stagePicker())),
+      const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(18,22,18,10),
+        child: Text('از کجا شروع کنیم؟', style: TextStyle(fontSize:19,fontWeight:FontWeight.w800)))),
+      SliverPadding(padding: const EdgeInsets.symmetric(horizontal:18), sliver: SliverGrid(
+        delegate: SliverChildListDelegate([
+          _goalCard(Icons.calendar_month_rounded,'برنامه‌ریزی درسی','برنامهٔ قابل اجرا برای روزهای شلوغ'),
+          _goalCard(Icons.explore_rounded,'انتخاب رشته','شناخت علاقه‌ها و مسیرهای آینده'),
+          _goalCard(Icons.school_rounded,'آزمون و کنکور','مرور، تمرین و مدیریت زمان'),
+          _goalCard(Icons.work_outline_rounded,'دانشگاه و شغل','تصمیم‌گیری برای قدم بعدی'),
+        ]),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:2,crossAxisSpacing:12,mainAxisSpacing:12,childAspectRatio:1.42),
+      )),
+      const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(18,24,18,8),
+        child: Text('از مشاور تحصیلی بپرس',style:TextStyle(fontSize:19,fontWeight:FontWeight.w800)))),
+      SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.symmetric(horizontal:18),child:_questionCard())),
+      if (_answer != null) SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.fromLTRB(18,14,18,12),child:_answerCard())),
+      SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.fromLTRB(18,18,18,28),child:_privacyNote())),
+    ])),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: ['خانه','برنامه من','یادداشت‌ها','پروفایل'].indexOf(_tab),
+      onDestinationSelected:(i)=>setState(()=>_tab=['خانه','برنامه من','یادداشت‌ها','پروفایل'][i]),
+      destinations: const [
+        NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'خانه'),
+        NavigationDestination(icon:Icon(Icons.event_note_outlined),label:'برنامه من'),
+        NavigationDestination(icon:Icon(Icons.bookmark_border),label:'یادداشت‌ها'),
+        NavigationDestination(icon:Icon(Icons.person_outline),label:'پروفایل'),
+      ],
+    ),
+  );
+
+  Widget _header()=>Padding(padding:const EdgeInsets.fromLTRB(20,14,20,4),child:Row(children:[
+    Container(width:48,height:48,decoration:BoxDecoration(color:const Color(0xFFDCEFEA),borderRadius:BorderRadius.circular(16)),
+      child:const Icon(Icons.auto_awesome,color:Color(0xFF287D72),size:28)),
+    const SizedBox(width:12),
+    const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('همراه تحصیلی',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900)),
+      Text('از اولین قدم تا آینده‌ای روشن',style:TextStyle(fontSize:12,color:Colors.black54)),
+    ])),
+    IconButton(onPressed:()=>setState(()=>_showGuide=!_showGuide),tooltip:'راهنما',icon:const Icon(Icons.help_outline_rounded)),
+  ]));
+
+  Widget _welcomeCard()=>Container(padding:const EdgeInsets.all(20),
+    decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF287D72),Color(0xFF3A9B88)],begin:Alignment.topRight,end:Alignment.bottomLeft),borderRadius:BorderRadius.circular(24)),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('مسیر تحصیلی تو، قدم‌به‌قدم',style:TextStyle(color:Colors.white,fontSize:21,fontWeight:FontWeight.w900)),
+      const SizedBox(height:8),
+      const Text('برای درس خواندن، انتخاب رشته، کنکور یا تصمیم‌های بعد از فارغ‌التحصیلی یک نقطهٔ شروع پیدا کن.',style:TextStyle(color:Colors.white,height:1.7)),
+      if(_showGuide)...[const SizedBox(height:12),const Text('مقطع را انتخاب کن، موضوع را مشخص کن و پرسشت را با جزئیات بنویس. پاسخ‌های این نسخه نمونه و عمومی‌اند.',style:TextStyle(color:Colors.white,height:1.6))],
+      const SizedBox(height:14),
+      Wrap(spacing:8,runSpacing:8,children:[_heroPill(Icons.flag_outlined,'هدف‌گذاری'),_heroPill(Icons.schedule,'برنامهٔ واقع‌بینانه'),_heroPill(Icons.route_outlined,'انتخاب مسیر')]),
+    ]));
+
+  Widget _heroPill(IconData icon,String label)=>Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:7),
+    decoration:BoxDecoration(color:Colors.white.withValues(alpha:.16),borderRadius:BorderRadius.circular(30)),
+    child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,color:Colors.white,size:15),const SizedBox(width:5),Text(label,style:const TextStyle(color:Colors.white,fontSize:11,fontWeight:FontWeight.w600))]));
+
+  Widget _stagePicker()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Text('مقطع تحصیلی شما',style:TextStyle(fontSize:15,fontWeight:FontWeight.w800)),const SizedBox(height:10),
+    Wrap(spacing:8,runSpacing:8,children:stages.map((s)=>ChoiceChip(label:Text(s),selected:_stage==s,
+      onSelected:(_)=>setState(()=>_stage=s),selectedColor:const Color(0xFFDCEFEA),
+      side:BorderSide(color:_stage==s?const Color(0xFF287D72):const Color(0xFFE2E9E6)),
+      labelStyle:TextStyle(fontWeight:_stage==s?FontWeight.w800:FontWeight.w500))).toList()),
+  ]);
+
+  Widget _goalCard(IconData icon,String title,String subtitle){
+    final selected=_goal==title;
+    return InkWell(borderRadius:BorderRadius.circular(20),onTap:()=>setState(()=>_goal=title),
+      child:Container(padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:selected?const Color(0xFFE3F2ED):Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:selected?const Color(0xFF287D72):const Color(0xFFE6ECE9))),
+        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Icon(icon,color:const Color(0xFF287D72),size:27),const Spacer(),
+          Text(title,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:14)),const SizedBox(height:4),
+          Text(subtitle,style:const TextStyle(fontSize:11,color:Colors.black54,height:1.4),maxLines:2,overflow:TextOverflow.ellipsis),
+        ])));
+  }
+
+  Widget _questionCard()=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+    Text('موضوع: $_goal',style:const TextStyle(fontWeight:FontWeight.w700,color:Color(0xFF287D72))),const SizedBox(height:12),
+    TextField(controller:_questionController,minLines:3,maxLines:6,
+      decoration:InputDecoration(hintText:'مثلاً: برای امتحان‌های دو هفتهٔ آینده چطور برنامه‌ریزی کنم؟',filled:true,fillColor:const Color(0xFFF5F8F7),border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none))),
+    const SizedBox(height:12),
+    FilledButton.icon(onPressed:_askAdvisor,icon:const Icon(Icons.chat_bubble_outline_rounded),label:const Padding(padding:EdgeInsets.symmetric(vertical:13),child:Text('دریافت راهنمایی'))),
+  ])));
+
+  Widget _answerCard()=>Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Row(children:[Icon(Icons.lightbulb_outline,color:Color(0xFF287D72)),SizedBox(width:8),Text('راهنمای پیشنهادی',style:TextStyle(fontWeight:FontWeight.w900,fontSize:17))]),
+    const SizedBox(height:12),SelectableText(_answer!,style:const TextStyle(height:1.8)),
+  ])));
+
+  Widget _privacyNote()=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(16)),
+    child:const Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Icon(Icons.info_outline,color:Color(0xFF93620B)),const SizedBox(width:10),
+      Expanded(child:Text('این نسخه نمونهٔ اولیه است و هنوز به هوش مصنوعی، حساب کاربری، همگام‌سازی یا پرداخت متصل نشده است. تصمیم‌های مهم آموزشی را با خانواده و مشاور مدرسه نیز بررسی کنید.',style:TextStyle(height:1.7,color:Color(0xFF76520F),fontSize:12))),
+    ]));
+}
