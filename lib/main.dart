@@ -484,8 +484,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ),
       ),
     );
-    subjectController.dispose();
-    minutesController.dispose();
+    // Dialog pop animations can keep TextFields mounted briefly after showDialog completes.
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      subjectController.dispose();
+      minutesController.dispose();
+    });
     if (session == null || !mounted) return;
     setState(() => _studySessions.add(session));
     await _saveData();
@@ -820,8 +823,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         ),
       ),
     );
-    subjectController.dispose();
-    scoreController.dispose();
+    // Let the dialog's reverse transition finish before disposing its TextField controllers.
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      subjectController.dispose();
+      scoreController.dispose();
+    });
     if (exam == null || !mounted) return;
     setState(() => _exams.add(exam));
     await _saveData();
