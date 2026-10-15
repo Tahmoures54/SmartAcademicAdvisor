@@ -32,6 +32,21 @@ void main() {
     expect(find.textContaining('۱۰ تا ۱۵ دقیقه‌ای'), findsOneWidget);
   });
 
+  testWidgets('study self-assessment calculates a guidance score', (tester) async {
+    await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.tap(find.text('ارزیابی سریع روش مطالعه'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('به‌سختی'));
+    await tester.tap(find.text('خیلی زود'));
+    await tester.tap(find.text('به‌ندرت'));
+    await tester.tap(find.text('اغلب سنگین است'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('نمایش جمع‌بندی'));
+    await tester.pumpAndSettle();
+    expect(find.text('امتیاز راهنمایی: 2 از 8'), findsOneWidget);
+    expect(find.textContaining('نمرهٔ هوش'), findsOneWidget);
+  });
+
   testWidgets('bottom navigation opens the study plan page', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
     await tester.tap(find.text('برنامه من').last);
