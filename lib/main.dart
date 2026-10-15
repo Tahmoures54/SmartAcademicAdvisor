@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const AcademicAdvisorApp());
 
@@ -120,6 +121,7 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
 class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _questionController = TextEditingController();
   final _newTaskController = TextEditingController();
+  final _notesController = TextEditingController();
   final List<String> _studyTasks = [];
   final Set<String> _completedTasks = {};
   String _stage = 'متوسطه اول';
@@ -130,7 +132,73 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   static const stages = ['ابتدایی', 'متوسطه اول', 'متوسطه دوم', 'کنکوری', 'دانشجو', 'فارغ‌التحصیل'];
 
   @override
-  void dispose() { _questionController.dispose(); _newTaskController.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  Future<void> _loadSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _stage = prefs.getString('profile_stage') ?? _stage;
+      _goal = prefs.getString('profile_goal') ?? _goal;
+      _studyTasks
+        ..clear()
+        ..addAll(prefs.getStringList('study_tasks') ?? []);
+      _completedTasks
+        ..clear()
+        ..addAll((prefs.getStringList('completed_tasks') ?? [])
+          .map(int.tryParse).whereType<int>());
+      _notesController.text = prefs.getString('study_notes') ?? '';
+    });
+  }
+
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_stage', _stage);
+    await prefs.setString('profile_goal', _goal);
+    await prefs.setStringList('study_tasks', _studyTasks);
+    await prefs.setStringList('completed_tasks',
+      _completedTasks.map((index) => index.toString()).toList());
+    await prefs.setString('study_notes', _notesController.text);
+  }
+
+  Future<void> _clearSavedData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف اطلاعات ذخیره‌شده؟'),
+        content: const Text('برنامه‌ها، یادداشت‌ها و ترجیحات محلی این اپ از روی این دستگاه حذف می‌شوند.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+            child: const Text('انصراف')),
+          FilledButton(onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف اطلاعات')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
+    setState(() {
+      _stage = 'متوسطه اول';
+      _goal = 'برنامه‌ریزی درسی';
+      _studyTasks.clear();
+      _completedTasks.clear();
+      _notesController.clear();
+      _answer = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _questionController.dispose();
+    _newTaskController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   String _stageAdvice() => switch (_stage) {
     'ابتدایی' => 'درس را به بخش‌های کوتاه ۱۰ تا ۱۵ دقیقه‌ای تقسیم کن، بعد از هر بخش کمی استراحت داشته باش و اگر مطلبی سخت بود از معلم یا خانواده کمک بگیر.',
@@ -213,6 +281,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _studyTasks.add(task);
       _newTaskController.clear();
     });
+    _saveData();
   }
 
   Widget _studyPlannerPage() => ListView(
@@ -271,10 +340,13 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           child: CheckboxListTile(
             value: _completedTasks.contains(entry.key),
-            onChanged: (checked) => setState(() {
-              if (checked == true) { _completedTasks.add(entry.key); }
-              else { _completedTasks.remove(entry.key); }
-            }),
+            onChanged: (checked) {
+              setState(() {
+                if (checked == true) { _completedTasks.add(entry.key); }
+                else { _completedTasks.remove(entry.key); }
+              });
+              _saveData();
+            },
             title: Text(entry.value),
             controlAffinity: ListTileControlAffinity.leading,
             secondary: IconButton(
@@ -289,7 +361,8 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
                 _completedTasks
                   ..clear()
                   ..addAll(updatedCompleted);
-              }),
+                _saveData();
+              })
             ),
           ),
         )),
@@ -299,15 +372,36 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ],
   );
 
+  Widget _notesPage() => ListView(padding: const EdgeInsets.fromLTRB(18,18,18,28), children: [
+    Row(children: [
+      IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+        icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+      const SizedBox(width: 6),
+      const Expanded(child: Text('یادداشت‌های من', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+    ]),
+    const SizedBox(height: 8),
+    const Text('نکته‌ها، هدف‌ها یا پرسش‌هایی را که می‌خواهی بعداً مرور کنی اینجا بنویس.', style: TextStyle(height: 1.7, color: Colors.black54)),
+    const SizedBox(height: 18),
+    TextField(controller: _notesController, minLines: 8, maxLines: 18,
+      onChanged: (_) => _saveData(),
+      decoration: InputDecoration(hintText: 'یادداشت تحصیلی شما…', filled: true, fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)))),
+    const SizedBox(height: 12),
+    FilledButton.icon(onPressed: _saveData, icon: const Icon(Icons.save_outlined), label: const Text('ذخیرهٔ یادداشت')),
+    const SizedBox(height: 8),
+    const Text('یادداشت‌ها فقط در حافظهٔ محلی این دستگاه ذخیره می‌شوند و همگام‌سازی ابری ندارند.', style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.7)),
+  ]);
+
   Widget _secondaryPage() {
     if (_tab == 'برنامه من') return _studyPlannerPage();
+    if (_tab == 'یادداشت‌ها') return _notesPage();
     final details = switch (_tab) {
       'برنامه من' => ('برنامهٔ درسی من', 'برنامه‌ریزی متناسب با زمان و هدف شما', Icons.calendar_month_rounded,
         'در نسخهٔ بعدی، درس‌ها، زمان آزاد و تاریخ امتحان‌ها را ثبت می‌کنیم تا برنامه‌ای واقع‌بینانه ساخته شود.'),
       'یادداشت‌ها' => ('یادداشت‌های من', 'نکته‌ها و هدف‌های مهم تحصیلی', Icons.bookmark_border_rounded,
         'اینجا محل نگهداری نکته‌ها، هدف‌ها و یادداشت‌های تحصیلی شما خواهد بود.'),
       _ => ('پروفایل تحصیلی', 'اطلاعات پایه برای راهنمایی دقیق‌تر', Icons.person_outline_rounded,
-        'در مراحل بعد، پایه یا مقطع، هدف تحصیلی و ترجیحات شما را ثبت می‌کنیم؛ اطلاعات حساس غیرضروری درخواست نمی‌شود.'),
+        'مقطع فعلی: $_stage\\nموضوع منتخب: $_goal\\nاین ترجیحات روی همین دستگاه ذخیره می‌شوند.'),
     };
     return ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 28), children: [
       Row(children: [
@@ -338,6 +432,11 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
               style: TextStyle(color: Color(0xFF76520F), height: 1.6))),
           ]),
           const SizedBox(height: 16),
+          if (_tab == 'پروفایل') ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(onPressed: _clearSavedData,
+              icon: const Icon(Icons.delete_forever_outlined), label: const Text('حذف اطلاعات ذخیره‌شده')),
+          ],
           OutlinedButton.icon(
             onPressed: () => setState(() => _tab = 'خانه'),
             icon: const Icon(Icons.home_outlined), label: const Text('بازگشت به صفحهٔ اصلی')),
@@ -375,14 +474,14 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   Widget _stagePicker()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     const Text('مقطع تحصیلی شما',style:TextStyle(fontSize:15,fontWeight:FontWeight.w800)),const SizedBox(height:10),
     Wrap(spacing:8,runSpacing:8,children:stages.map((s)=>ChoiceChip(label:Text(s),selected:_stage==s,
-      onSelected:(_)=>setState(()=>_stage=s),selectedColor:const Color(0xFFDCEFEA),
+      onSelected:(_) { setState(()=>_stage=s); _saveData(); },selectedColor:const Color(0xFFDCEFEA),
       side:BorderSide(color:_stage==s?const Color(0xFF287D72):const Color(0xFFE2E9E6)),
       labelStyle:TextStyle(fontWeight:_stage==s?FontWeight.w800:FontWeight.w500))).toList()),
   ]);
 
   Widget _goalCard(IconData icon,String title,String subtitle){
     final selected=_goal==title;
-    return InkWell(borderRadius:BorderRadius.circular(20),onTap:()=>setState(()=>_goal=title),
+    return InkWell(borderRadius:BorderRadius.circular(20),onTap:() { setState(()=>_goal=title); _saveData(); },
       child:Container(padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:selected?const Color(0xFFE3F2ED):Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:selected?const Color(0xFF287D72):const Color(0xFFE6ECE9))),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Icon(icon,color:const Color(0xFF287D72),size:27),const Spacer(),
