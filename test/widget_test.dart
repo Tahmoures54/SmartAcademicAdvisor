@@ -159,6 +159,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('افزودن سؤال برای مرور'));
     await tester.tap(find.text('افزودن سؤال برای مرور'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).at(0), 'زیست');
@@ -198,6 +199,10 @@ void main() {
 
   testWidgets('step tutor guides learner through three stages offline', (tester) async {
     await tester.pumpWidget(const AcademicAdvisorApp());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
+      scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
       scrollable: find.byType(Scrollable).first);
