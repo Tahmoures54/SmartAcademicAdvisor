@@ -542,6 +542,102 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     );
   }
 
+  Widget _masteryGuidanceSection() {
+    final confidenceBySubject = <String, List<int>>{};
+    for (final session in _studySessions) {
+      final subject = (session['subject'] ?? '').trim();
+      if (subject.isEmpty) continue;
+      confidenceBySubject.putIfAbsent(subject, () => []).add(
+        int.tryParse(session['confidence'] ?? '3') ?? 3);
+    }
+    final wrongBySubject = <String, int>{};
+    final dueBySubject = <String, int>{};
+    final today = _dayOnly(DateTime.now());
+    for (final card in _reviewCards) {
+      final subject = (card['subject'] ?? 'درس').trim();
+      wrongBySubject[subject] = (wrongBySubject[subject] ?? 0) +
+        (int.tryParse(card['wrong'] ?? '0') ?? 0);
+      final due = DateTime.tryParse(card['due'] ?? '');
+      if (due == null || !_dayOnly(due).isAfter(today)) {
+        dueBySubject[subject] = (dueBySubject[subject] ?? 0) + 1;
+      }
+    }
+    final subjects = <String>{
+      ...confidenceBySubject.keys,
+      ...wrongBySubject.keys,
+    }.toList();
+    subjects.sort((a, b) {
+      double score(String subject) {
+        final values = confidenceBySubject[subject] ?? [];
+        final confidence = values.isEmpty ? 3.0 :
+          values.reduce((x, y) => x + y) / values.length;
+        return confidence - (wrongBySubject[subject] ?? 0) * 0.5;
+      }
+      return score(a).compareTo(score(b));
+    });
+    final priority = subjects.isEmpty ? null : subjects.first;
+    final dueTotal = dueBySubject.values.fold<int>(0, (sum, count) => sum + count);
+    final wrongTotal = wrongBySubject.values.fold<int>(0, (sum, count) => sum + count);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF5F1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD5E9E1))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('نقشهٔ تسلط و اولویت یادگیری',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        const Text('با ترکیب خودارزیابی مطالعه و نتیجهٔ کارت‌های مرور، یک اولویت پیشنهادی می‌سازیم؛ این گزارش جای آزمون واقعی را نمی‌گیرد.',
+          style: TextStyle(fontSize: 12, height: 1.7, color: Colors.black54)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _progressMetric('مرورهای آماده', dueTotal.toString())),
+          const SizedBox(width: 10),
+          Expanded(child: _progressMetric('دفعات پاسخ دشوار', wrongTotal.toString())),
+        ]),
+        const SizedBox(height: 12),
+        if (priority == null)
+          const Text('برای پیشنهاد شخصی، یک جلسهٔ مطالعه با میزان تسلط خود ثبت کن یا کارت مرور بساز.',
+            style: TextStyle(fontWeight: FontWeight.w700, height: 1.7))
+        else ...[
+          Text('اولویت پیشنهادی: ${priority}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text((wrongBySubject[priority] ?? 0) > 0
+            ? 'در این درس پاسخ‌های دشوار ثبت شده‌اند؛ مرور کارت‌های همین درس را در اولویت بگذار.'
+            : (confidenceBySubject[priority]?.isNotEmpty ?? false)
+              ? 'تسلطی که برای این درس ثبت کرده‌ای پایین‌تر است؛ با یک تمرین کوتاه و سپس مرور اشتباه‌ها شروع کن.'
+              : 'برای این درس کارت مرور ثبت شده؛ ابتدا کارت‌های آمادهٔ مرور را پاسخ بده.',
+            style: const TextStyle(fontSize: 12, height: 1.7)),
+          const SizedBox(height: 8),
+          ...subjects.take(3).map((subject) {
+            final values = confidenceBySubject[subject] ?? [];
+            final confidence = values.isEmpty ? null :
+              values.reduce((x, y) => x + y) / values.length;
+            final due = dueBySubject[subject] ?? 0;
+            return Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Row(children: [
+                Expanded(child: Text(subject, style: const TextStyle(fontWeight: FontWeight.w700))),
+                Text(confidence == null ? 'بدون خودارزیابی' : 'تسلط ${confidence.toStringAsFixed(1)}/5',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF287D72))),
+                const SizedBox(width: 8),
+                Text('${due} مرور', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+              ]),
+            );
+          }),
+        ],
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _localDataLoaded ? _addReviewCard : null,
+          icon: const Icon(Icons.lightbulb_outline),
+          label: const Text('ساخت سؤال برای تمرین درس دشوار'),
+        ),
+      ]),
+    );
+  }
+
   Widget _reviewPracticeSection() {
     final today = _dayOnly(DateTime.now());
     final due = _reviewCards.where((card) {
@@ -987,6 +1083,8 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       _focusTimerCard(),
       const SizedBox(height: 16),
       _studyProgressSection(),
+      const SizedBox(height: 12),
+      _masteryGuidanceSection(),
       const SizedBox(height: 12),
       _weeklyProgressReport(),
       const SizedBox(height: 12),
