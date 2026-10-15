@@ -30,6 +30,9 @@ class AdvisorHomeScreen extends StatefulWidget {
 
 class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   final _questionController = TextEditingController();
+  final _newTaskController = TextEditingController();
+  final List<String> _studyTasks = [];
+  final Set<String> _completedTasks = {};
   String _stage = 'متوسطه اول';
   String _goal = 'برنامه‌ریزی درسی';
   String _tab = 'خانه';
@@ -38,7 +41,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   static const stages = ['ابتدایی', 'متوسطه اول', 'متوسطه دوم', 'کنکوری', 'دانشجو', 'فارغ‌التحصیل'];
 
   @override
-  void dispose() { _questionController.dispose(); super.dispose(); }
+  void dispose() { _questionController.dispose(); _newTaskController.dispose(); super.dispose(); }
 
   String _stageAdvice() => switch (_stage) {
     'ابتدایی' => 'درس را به بخش‌های کوتاه ۱۰ تا ۱۵ دقیقه‌ای تقسیم کن، بعد از هر بخش کمی استراحت داشته باش و اگر مطلبی سخت بود از معلم یا خانواده کمک بگیر.',
@@ -106,7 +109,97 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     ),
   );
 
+  void _addStudyTask() {
+    final task = _newTaskController.text.trim();
+    if (task.isEmpty) return;
+    setState(() {
+      _studyTasks.add(task);
+      _newTaskController.clear();
+    });
+  }
+
+  Widget _studyPlannerPage() => ListView(
+    padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+    children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        const Expanded(child: Text('برنامهٔ درسی من',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      const Text('کارهای درسی را ثبت کن و پس از انجام، تیک بزن.',
+        style: TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 18),
+      Container(padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          TextField(controller: _newTaskController,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _addStudyTask(),
+            decoration: InputDecoration(
+              labelText: 'کار یا درس بعدی',
+              hintText: 'مثلاً: مرور فصل دوم علوم',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(onPressed: _addStudyTask,
+            icon: const Icon(Icons.add_task_rounded), label: const Text('افزودن به برنامه')),
+        ]),
+      ),
+      const SizedBox(height: 18),
+      Row(children: [
+        const Expanded(child: Text('کارهای امروز',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+        Text('${_completedTasks.length} از ${_studyTasks.length} انجام‌شده',
+          style: const TextStyle(color: Color(0xFF287D72), fontWeight: FontWeight.w700)),
+      ]),
+      const SizedBox(height: 10),
+      if (_studyTasks.isEmpty)
+        Container(padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: const Color(0xFFEAF3F0), borderRadius: BorderRadius.circular(18)),
+          child: const Column(children: [
+            Icon(Icons.event_note_outlined, size: 34, color: Color(0xFF287D72)),
+            SizedBox(height: 8),
+            Text('هنوز کاری ثبت نشده است', style: TextStyle(fontWeight: FontWeight.w800)),
+            SizedBox(height: 4),
+            Text('اولین کار درسی خود را در کادر بالا بنویس.',
+              textAlign: TextAlign.center, style: TextStyle(height: 1.6)),
+          ]),
+        )
+      else
+        ..._studyTasks.asMap().entries.map((entry) => Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: CheckboxListTile(
+            value: _completedTasks.contains(entry.key),
+            onChanged: (checked) => setState(() {
+              if (checked == true) { _completedTasks.add(entry.key); }
+              else { _completedTasks.remove(entry.key); }
+            }),
+            title: Text(entry.value),
+            controlAffinity: ListTileControlAffinity.leading,
+            secondary: IconButton(
+              tooltip: 'حذف کار',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () => setState(() {
+                _studyTasks.removeAt(entry.key);
+                _completedTasks
+                  ..removeWhere((index) => index >= _studyTasks.length)
+                  ..remove(entry.key);
+              }),
+            ),
+          ),
+        )),
+      const SizedBox(height: 12),
+      const Text('یادآوری: در این مرحله، فهرست فقط تا زمان بسته‌ماندن صفحهٔ برنامه در حافظه می‌ماند؛ ذخیرهٔ دائمی در مرحلهٔ ذخیره‌سازی اضافه می‌شود.',
+        style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.7)),
+    ],
+  );
+
   Widget _secondaryPage() {
+    if (_tab == 'برنامه من') return _studyPlannerPage();
     final details = switch (_tab) {
       'برنامه من' => ('برنامهٔ درسی من', 'برنامه‌ریزی متناسب با زمان و هدف شما', Icons.calendar_month_rounded,
         'در نسخهٔ بعدی، درس‌ها، زمان آزاد و تاریخ امتحان‌ها را ثبت می‌کنیم تا برنامه‌ای واقع‌بینانه ساخته شود.'),
