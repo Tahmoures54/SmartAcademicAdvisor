@@ -193,7 +193,7 @@ void main() {
     expect(find.textContaining('مرور فعال'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), isNotEmpty);
-    expect(prefs.getString('study_task_due_dates'), contains('یادآوری'));
+    expect(prefs.getString('study_task_due_dates'), contains('مرور فعال'));
   });
 
   testWidgets('step tutor guides learner through three stages offline', (tester) async {
