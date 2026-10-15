@@ -37,6 +37,11 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    expect(find.text('این بخش در حال توسعه است؛ فعلاً اطلاعاتی ذخیره نمی‌شود.'), findsOneWidget);
+    expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
+    await tester.enterText(find.byType(EditableText).first, 'مرور فصل دوم علوم');
+    await tester.tap(find.text('افزودن به برنامه'));
+    await tester.pumpAndSettle();
+    expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
+    expect(find.text('۰ از ۱ انجام‌شده'), findsOneWidget);
   });
 }
