@@ -54,7 +54,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: CustomScrollView(slivers: [
+    body: SafeArea(child: _tab == 'خانه' ? CustomScrollView(slivers: [
       SliverToBoxAdapter(child: _header()),
       SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(18,18,18,12), child: _welcomeCard())),
       SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.symmetric(horizontal:18), child: _stagePicker())),
@@ -74,7 +74,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.symmetric(horizontal:18),child:_questionCard())),
       if (_answer != null) SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.fromLTRB(18,14,18,12),child:_answerCard())),
       SliverToBoxAdapter(child: Padding(padding:const EdgeInsets.fromLTRB(18,18,18,28),child:_privacyNote())),
-    ])),
+    ]) : _secondaryPage()),
     bottomNavigationBar: NavigationBar(
       selectedIndex: ['خانه','برنامه من','یادداشت‌ها','پروفایل'].indexOf(_tab),
       onDestinationSelected:(i)=>setState(()=>_tab=['خانه','برنامه من','یادداشت‌ها','پروفایل'][i]),
@@ -86,6 +86,52 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       ],
     ),
   );
+
+  Widget _secondaryPage() {
+    final details = switch (_tab) {
+      'برنامه من' => ('برنامهٔ درسی من', 'برنامه‌ریزی متناسب با زمان و هدف شما', Icons.calendar_month_rounded,
+        'در نسخهٔ بعدی، درس‌ها، زمان آزاد و تاریخ امتحان‌ها را ثبت می‌کنیم تا برنامه‌ای واقع‌بینانه ساخته شود.'),
+      'یادداشت‌ها' => ('یادداشت‌های من', 'نکته‌ها و هدف‌های مهم تحصیلی', Icons.bookmark_border_rounded,
+        'اینجا محل نگهداری نکته‌ها، هدف‌ها و یادداشت‌های تحصیلی شما خواهد بود.'),
+      _ => ('پروفایل تحصیلی', 'اطلاعات پایه برای راهنمایی دقیق‌تر', Icons.person_outline_rounded,
+        'در مراحل بعد، پایه یا مقطع، هدف تحصیلی و ترجیحات شما را ثبت می‌کنیم؛ اطلاعات حساس غیرضروری درخواست نمی‌شود.'),
+    };
+    return ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 28), children: [
+      Row(children: [
+        IconButton(onPressed: () => setState(() => _tab = 'خانه'),
+          icon: const Icon(Icons.arrow_forward_rounded), tooltip: 'بازگشت به خانه'),
+        const SizedBox(width: 6),
+        Expanded(child: Text(details.$1, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+      ]),
+      const SizedBox(height: 8),
+      Text(details.$2, style: const TextStyle(color: Colors.black54, height: 1.7)),
+      const SizedBox(height: 22),
+      Container(padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2EAE6))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 56, height: 56,
+            decoration: BoxDecoration(color: const Color(0xFFDCEFEA), borderRadius: BorderRadius.circular(18)),
+            child: Icon(details.$3, color: const Color(0xFF287D72), size: 30)),
+          const SizedBox(height: 18),
+          Text(details.$1, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Text(details.$4, style: const TextStyle(height: 1.8)),
+          const SizedBox(height: 18),
+          const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.info_outline, color: Color(0xFF93620B), size: 20),
+            SizedBox(width: 8),
+            Expanded(child: Text('این بخش در حال توسعه است؛ فعلاً اطلاعاتی ذخیره نمی‌شود.',
+              style: TextStyle(color: Color(0xFF76520F), height: 1.6))),
+          ]),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _tab = 'خانه'),
+            icon: const Icon(Icons.home_outlined), label: const Text('بازگشت به صفحهٔ اصلی')),
+        ]),
+      ),
+    ]);
+  }
 
   Widget _header()=>Padding(padding:const EdgeInsets.fromLTRB(20,14,20,4),child:Row(children:[
     Container(width:48,height:48,decoration:BoxDecoration(color:const Color(0xFFDCEFEA),borderRadius:BorderRadius.circular(16)),
