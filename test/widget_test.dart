@@ -90,6 +90,8 @@ void main() {
     await tester.tap(find.text('ساخت برنامهٔ مرور'));
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), findsOneWidget);
     expect(find.text('حل چند سؤال تمرینی از ریاضی'), findsOneWidget);
     final taskPrefs = await SharedPreferences.getInstance();
@@ -101,6 +103,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('ثبت جلسهٔ مطالعه'), 300,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('ثبت جلسهٔ مطالعه'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).at(0), 'ریاضی');
@@ -120,6 +124,8 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('برنامهٔ هفت روز آینده'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('برنامهٔ هفت روز آینده'), findsOneWidget);
     expect(find.text('دوشنبه'), findsWidgets);
     await tester.scrollUntilVisible(find.text('هنوز کاری ثبت نشده است'), 300,
@@ -144,7 +150,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('گزارش هفتگی پیشرفت'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('گزارش هفتگی پیشرفت'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('مرور فاصله‌دار و نقاط ضعف'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('مرور فاصله‌دار و نقاط ضعف'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('نقشهٔ تسلط و اولویت یادگیری'), 300,
       scrollable: find.byType(Scrollable).first);
@@ -160,7 +170,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('افزودن سؤال برای مرور'));
+    await tester.scrollUntilVisible(find.text('افزودن سؤال برای مرور'), 300,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('افزودن سؤال برای مرور'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).at(0), 'زیست');
@@ -193,6 +204,8 @@ void main() {
     await tester.tap(find.text('ساخت برنامه').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('مرور فعال'), 300,
+      scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('مرور فعال'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), isNotEmpty);
