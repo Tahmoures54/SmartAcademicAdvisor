@@ -543,6 +543,6 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   Widget _privacyNote()=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(16)),
     child:const Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Icon(Icons.info_outline,color:Color(0xFF93620B)),SizedBox(width:10),
-      Expanded(child:Text('این نسخه نمونهٔ اولیه است و هنوز به هوش مصنوعی، حساب کاربری، همگام‌سازی یا پرداخت متصل نشده است. تصمیم‌های مهم آموزشی را با خانواده و مشاور مدرسه نیز بررسی کنید.',style:TextStyle(height:1.7,color:Color(0xFF76520F),fontSize:12))),
+      Expanded(child:Text('برنامه‌ها و یادداشت‌ها روی همین دستگاه ذخیره می‌شوند. اگر اتصال هوش مصنوعی در نسخه نصب‌شده فعال باشد، پرسش برای پاسخ‌گویی به سرور ارسال می‌شود؛ اطلاعات حساس وارد نکنید. تصمیم‌های مهم آموزشی را با خانواده و مشاور مدرسه نیز بررسی کنید.',style:TextStyle(height:1.7,color:Color(0xFF76520F),fontSize:12))),
     ]));
 }
