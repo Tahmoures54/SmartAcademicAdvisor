@@ -37,9 +37,14 @@ Future<void> _pumpAdvisor(WidgetTester tester) async {
 }
 
 Future<void> _scrollPlannerUntilVisible(WidgetTester tester, Finder target) async {
-  // ListView lazily builds off-screen children. Swipe the page body itself so
-  // off-screen rows are built before trying to locate or interact with them.
-  for (var attempt = 0; attempt < 40 && target.evaluate().isEmpty; attempt++) {
+  // ListView lazily builds off-screen children. Continue swiping until the
+  // target is both built and inside the page viewport (above the nav bar).
+  for (var attempt = 0; attempt < 40; attempt++) {
+    final elements = target.evaluate();
+    if (elements.isNotEmpty) {
+      final rect = tester.getRect(target);
+      if (rect.top >= 0 && rect.bottom <= 840) return;
+    }
     await tester.dragFrom(const Offset(215, 760), const Offset(0, -380));
     await tester.pumpAndSettle();
   }
@@ -170,12 +175,8 @@ void main() {
     expect(find.text('دوشنبه'), findsWidgets);
     await _scrollPlannerUntilVisible(tester, find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    final taskField = find.byWidgetPredicate(
-      (widget) => widget is TextField &&
-        widget.decoration?.hintText == 'مثلاً: مرور فصل دوم علوم',
-    );
+    final taskField = find.text('کار یا درس بعدی');
     await _scrollPlannerUntilVisible(tester, taskField);
-    await tester.ensureVisible(taskField);
     await tester.enterText(find.byType(EditableText).last, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
@@ -252,6 +253,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const Key('study-planner-scroll')), findsOneWidget);
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.dragFrom(const Offset(215, 300), const Offset(0, 400));
+      await tester.pumpAndSettle();
+    }
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
     await _scrollPlannerUntilVisible(tester, find.textContaining('مرور فعال'));
     expect(find.textContaining('مرور فعال'), findsOneWidget);
