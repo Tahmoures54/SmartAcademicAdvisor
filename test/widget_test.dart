@@ -173,11 +173,18 @@ void main() {
     final taskField = find.byKey(const Key('planner-task-field'));
     await _scrollPlannerUntilVisible(tester, taskField);
     expect(taskField, findsOneWidget);
-    tester.widget<TextField>(taskField).controller!.text = 'مرور فصل دوم علوم';
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    final taskInput = tester.widget<TextField>(taskField);
+    expect(taskInput.enabled, isTrue);
+    taskInput.controller!.text = 'مرور فصل دوم علوم';
+    expect(taskInput.controller!.text, 'مرور فصل دوم علوم');
     await tester.pump();
 
     final addButton = find.text('افزودن به برنامه');
     await _scrollPlannerUntilVisible(tester, addButton);
+    await tester.ensureVisible(addButton);
+    expect(find.text('افزودن به برنامه'), findsOneWidget);
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
