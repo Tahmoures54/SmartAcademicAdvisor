@@ -5,22 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-// ListView and CustomScrollView create their Scrollable descendants.
-// Scope each finder to the owning page so tests scroll the intended viewport.
-Finder get _bodyScrollable => find.descendant(
-  of: find.byKey(const Key('home-scroll')),
+// A ListView is wrapped by its Scrollable; find that owning ancestor.
+// Scope each finder to the page ListView so tests use the intended viewport.
+Finder _pageScrollable(Key key) => find.ancestor(
+  of: find.byKey(key),
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.descendant(
-  of: find.byKey(const Key('study-planner-scroll')),
-  matching: find.byType(Scrollable),
-).first;
-
-Finder get _assessmentScrollable => find.descendant(
-  of: find.byKey(const Key('assessment-scroll')),
-  matching: find.byType(Scrollable),
-).first;
+Finder get _bodyScrollable => _pageScrollable(const Key('home-scroll'));
+Finder get _plannerScrollable => _pageScrollable(const Key('study-planner-scroll'));
+Finder get _assessmentScrollable => _pageScrollable(const Key('assessment-scroll'));
 
 Finder get _dialogFields => find.descendant(
   of: find.byType(AlertDialog).last,
