@@ -135,13 +135,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ثبت جلسهٔ مطالعه'), 300,
       scrollable: _plannerScrollable);
-    await tester.ensureVisible(find.text('ثبت جلسهٔ مطالعه'));
-    await tester.tap(find.text('ثبت جلسهٔ مطالعه'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت جلسهٔ مطالعه').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'ثبت جلسهٔ مطالعه').last);
     await tester.pumpAndSettle();
     await tester.enterText(_dialogFields.at(0), 'ریاضی');
     await tester.enterText(_dialogFields.at(1), '35');
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت مطالعه'));
-    await tester.tap(find.widgetWithText(FilledButton, 'ثبت مطالعه'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت مطالعه').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'ثبت مطالعه').last);
     await tester.pumpAndSettle();
     expect(find.text('ریاضی'), findsOneWidget);
     expect(find.text('35 دقیقه · تسلط 3.0/5'), findsOneWidget);
@@ -201,8 +201,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('افزودن سؤال برای مرور'), 300,
       scrollable: _plannerScrollable);
-    await tester.ensureVisible(find.text('افزودن سؤال برای مرور'));
-    await tester.tap(find.text('افزودن سؤال برای مرور'));
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.pumpAndSettle();
     await tester.enterText(_dialogFields.at(0), 'زیست');
     await tester.enterText(_dialogFields.at(1), 'میتوکندری چه می‌کند؟');
@@ -231,8 +231,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
       scrollable: _plannerScrollable);
-    await tester.ensureVisible(find.text('ساخت برنامهٔ پیشنهادی'));
-    await tester.tap(find.text('ساخت برنامهٔ پیشنهادی'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('ساخت برنامه').last);
     await tester.tap(find.text('ساخت برنامه').last);
@@ -252,8 +252,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
       scrollable: _plannerScrollable);
-    await tester.ensureVisible(find.text('مربی آموزشی قدم‌به‌قدم'));
-    await tester.tap(find.text('مربی آموزشی قدم‌به‌قدم'));
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, 'کسرها');
     await tester.ensureVisible(find.text('شروع یادگیری'));
