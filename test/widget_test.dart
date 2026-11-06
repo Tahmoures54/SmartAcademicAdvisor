@@ -37,10 +37,10 @@ Future<void> _pumpAdvisor(WidgetTester tester) async {
 }
 
 Future<void> _scrollPlannerUntilVisible(WidgetTester tester, Finder target) async {
-  // ListView lazily builds off-screen children, so ensureVisible cannot locate
-  // them until the list has been dragged far enough to build the target.
-  for (var attempt = 0; attempt < 20 && target.evaluate().isEmpty; attempt++) {
-    await tester.drag(find.byKey(const Key('study-planner-scroll')), const Offset(0, -350));
+  // ListView lazily builds off-screen children. Swipe the page body itself so
+  // off-screen rows are built before trying to locate or interact with them.
+  for (var attempt = 0; attempt < 40 && target.evaluate().isEmpty; attempt++) {
+    await tester.dragFrom(const Offset(215, 760), const Offset(0, -380));
     await tester.pumpAndSettle();
   }
 }
@@ -170,8 +170,9 @@ void main() {
     expect(find.text('دوشنبه'), findsWidgets);
     await _scrollPlannerUntilVisible(tester, find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    await _scrollPlannerUntilVisible(tester, find.text('مثلاً: مرور فصل دوم علوم'));
-    await tester.enterText(find.byType(EditableText).first, 'مرور فصل دوم علوم');
+    await _scrollPlannerUntilVisible(tester, find.byType(EditableText).last);
+    await tester.ensureVisible(find.byType(EditableText).last);
+    await tester.enterText(find.byType(EditableText).last, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
     expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
@@ -204,6 +205,7 @@ void main() {
     await tester.pumpAndSettle();
     await _scrollPlannerUntilVisible(tester, find.text('افزودن سؤال برای مرور'));
     await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.pumpAndSettle();
     await tester.enterText(_dialogFields.at(0), 'زیست');
@@ -233,6 +235,7 @@ void main() {
     await tester.pumpAndSettle();
     final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
     await _scrollPlannerUntilVisible(tester, adaptivePlanButton);
+    await tester.ensureVisible(adaptivePlanButton);
     await tester.pumpAndSettle();
     await tester.tap(adaptivePlanButton);
     await tester.pumpAndSettle();
