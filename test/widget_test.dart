@@ -5,17 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-Finder get _bodyScrollable => find.descendant(
+// Scrollable is an ancestor of the keyed scroll-view widget, not its
+// descendant. Resolve the owning Scrollable explicitly for stable scrolling.
+Finder get _bodyScrollable => find.ancestor(
   of: find.byKey(const Key('home-scroll')),
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.descendant(
+Finder get _plannerScrollable => find.ancestor(
   of: find.byKey(const Key('study-planner-scroll')),
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _assessmentScrollable => find.descendant(
+Finder get _assessmentScrollable => find.ancestor(
   of: find.byType(StudyAssessmentPage),
   matching: find.byType(Scrollable),
 ).first;
@@ -237,8 +239,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
       scrollable: _plannerScrollable);
-    await tester.scrollUntilVisible(find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last, 350, scrollable: _plannerScrollable);
-    await tester.tap(find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last);
+    final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
+    await tester.scrollUntilVisible(adaptivePlanButton, 350, scrollable: _plannerScrollable);
+    await tester.ensureVisible(adaptivePlanButton);
+    await tester.pumpAndSettle();
+    await tester.tap(adaptivePlanButton);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'ساخت برنامه').last);
     await tester.tap(find.text('ساخت برنامه').last);
