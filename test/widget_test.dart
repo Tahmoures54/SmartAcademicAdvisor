@@ -175,9 +175,12 @@ void main() {
     expect(find.text('دوشنبه'), findsWidgets);
     await _scrollPlannerUntilVisible(tester, find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    final taskField = find.text('کار یا درس بعدی');
+    final taskField = find.byKey(const Key('planner-task-field'));
     await _scrollPlannerUntilVisible(tester, taskField);
-    await tester.enterText(find.byType(EditableText).last, 'مرور فصل دوم علوم');
+    await tester.enterText(
+      find.descendant(of: taskField, matching: find.byType(EditableText)),
+      'مرور فصل دوم علوم',
+    );
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
     expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
