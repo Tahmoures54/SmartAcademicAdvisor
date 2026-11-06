@@ -5,19 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-// Scrollable is an ancestor of the keyed scroll-view widget, not its
-// descendant. Resolve the owning Scrollable explicitly for stable scrolling.
-Finder get _bodyScrollable => find.ancestor(
+// ListView and CustomScrollView create their Scrollable descendants.
+// Scope each finder to the owning page so tests scroll the intended viewport.
+Finder get _bodyScrollable => find.descendant(
   of: find.byKey(const Key('home-scroll')),
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.ancestor(
+Finder get _plannerScrollable => find.descendant(
   of: find.byKey(const Key('study-planner-scroll')),
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _assessmentScrollable => find.ancestor(
+Finder get _assessmentScrollable => find.descendant(
   of: find.byType(StudyAssessmentPage),
   matching: find.byType(Scrollable),
 ).first;
