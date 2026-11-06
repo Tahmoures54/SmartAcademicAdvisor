@@ -12,13 +12,6 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
-// Scope scroll operations to the page's own ListView. Unscoped finders can
-// accidentally select the horizontal Scrollable used by a TextField.
-Finder get _plannerScrollable => find.descendant(
-  of: find.byKey(const Key('study-planner-scroll')),
-  matching: find.byType(Scrollable),
-).first;
-
 Finder get _assessmentScrollable => find.descendant(
   of: find.byKey(const Key('assessment-scroll')),
   matching: find.byType(Scrollable),
