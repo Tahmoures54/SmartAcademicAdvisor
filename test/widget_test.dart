@@ -1,13 +1,19 @@
 import 'dart:ui' show Size;
 
-import 'package:flutter/material.dart' show AlertDialog, EditableText, FilledButton, OutlinedButton, Scrollable;
+import 'package:flutter/material.dart' show AlertDialog, EditableText, FilledButton, Key, OutlinedButton, Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-Finder get _bodyScrollable => find.byType(Scrollable).first;
+Finder get _bodyScrollable => find.descendant(
+  of: find.byKey(const Key('home-scroll')),
+  matching: find.byType(Scrollable),
+).first;
 
-Finder get _plannerScrollable => find.byType(Scrollable).first;
+Finder get _plannerScrollable => find.descendant(
+  of: find.byKey(const Key('study-planner-scroll')),
+  matching: find.byType(Scrollable),
+).first;
 
 Finder get _assessmentScrollable => find.descendant(
   of: find.byType(StudyAssessmentPage),
