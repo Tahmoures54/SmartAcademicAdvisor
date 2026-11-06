@@ -5,8 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-Finder _scrollableFor(Finder target) => find.ancestor(
-  of: target,
+Finder get _bodyScrollable => find.byType(Scrollable).first;
+
+Finder get _plannerScrollable => find.byType(Scrollable).first;
+
+Finder get _assessmentScrollable => find.descendant(
+  of: find.byType(StudyAssessmentPage),
   matching: find.byType(Scrollable),
 ).first;
 
