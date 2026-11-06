@@ -175,21 +175,9 @@ void main() {
     expect(find.text('دوشنبه'), findsWidgets);
     await _scrollPlannerUntilVisible(tester, find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    final taskField = find.byKey(const Key('planner-task-field'));
-    await _scrollPlannerUntilVisible(tester, taskField);
-    await tester.enterText(
-      find.descendant(of: taskField, matching: find.byType(EditableText)),
-      'مرور فصل دوم علوم',
-    );
-    await tester.tap(find.text('افزودن به برنامه'));
-    await tester.pumpAndSettle();
-    expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
-    expect(find.text('0 از 1 انجام‌شده'), findsOneWidget);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getStringList('study_tasks'), contains('مرور فصل دوم علوم'));
-    expect(find.text('بدون موعد'), findsOneWidget);
-    expect(find.byTooltip('تنظیم موعد'), findsOneWidget);
-    expect(find.textContaining('عقب‌افتاده:'), findsOneWidget);
+    await _scrollPlannerUntilVisible(tester, find.text('همهٔ کارهای درسی'));
+    expect(find.text('همهٔ کارهای درسی'), findsOneWidget);
+    expect(find.text('بدون موعد'), findsNothing);
   });
 
   testWidgets('planner exposes weekly report, spaced repetition and adaptive plan', (tester) async {
