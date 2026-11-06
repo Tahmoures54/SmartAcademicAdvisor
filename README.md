@@ -18,7 +18,6 @@
 ```
 lib/
   main.dart                 # ورود + UI کامل (متصل به سرویس‌ها)
-  app.dart                  # MaterialApp و تم
   config/app_config.dart
   models/                   # Exam, StudySession, ReviewCard, PlannerSnapshot
   services/
