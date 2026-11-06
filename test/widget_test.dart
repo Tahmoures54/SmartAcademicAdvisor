@@ -45,7 +45,7 @@ void main() {
   testWidgets('submits a question and labels demo guidance', (tester) async {
     await _pumpAdvisor(tester);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: _bodyScrollable);
+      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).first, 'چطور درس بخوانم؟');
     await tester.ensureVisible(find.text('دریافت راهنمایی'));
@@ -59,7 +59,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('ابتدایی').first);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: _bodyScrollable);
+      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).first, 'چطور بهتر درس بخوانم؟');
     await tester.ensureVisible(find.text('دریافت راهنمایی'));
@@ -118,7 +118,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
     expect(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), findsOneWidget);
     expect(find.text('حل چند سؤال تمرینی از ریاضی'), findsOneWidget);
     final taskPrefs = await SharedPreferences.getInstance();
