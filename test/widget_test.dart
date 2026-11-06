@@ -5,9 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-Finder get _bodyScrollable => find.byType(CustomScrollView).first;
+Finder get _bodyScrollable => find.descendant(
+  of: find.byType(CustomScrollView).first,
+  matching: find.byType(Scrollable),
+).first;
 
-Finder get _plannerScrollable => find.byType(ListView).first;
+Finder get _plannerScrollable => find.descendant(
+  of: find.byType(ListView).first,
+  matching: find.byType(Scrollable),
+).first;
 
 Finder get _dialogFields => find.descendant(
   of: find.byType(AlertDialog).last,
