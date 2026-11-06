@@ -21,6 +21,8 @@ jobs:
           cache: true
       - name: Generate Android platform scaffold
         run: flutter create --platforms=android .
+      - name: Configure stable Android package and Persian app label
+        run: python scripts/configure_android_release.py
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze
