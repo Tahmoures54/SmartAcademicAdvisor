@@ -368,7 +368,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: _tab == 'خانه' ? CustomScrollView(slivers: [
+    body: SafeArea(child: _tab == 'خانه' ? CustomScrollView(key: const Key('home-scroll'), slivers: [
       SliverToBoxAdapter(child: _header()),
       SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(18,18,18,12), child: _welcomeCard())),
       SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.symmetric(horizontal:18), child: _stagePicker())),
@@ -1121,6 +1121,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     );
   }
   Widget _studyPlannerPage() => ListView(
+    key: const Key('study-planner-scroll'),
     padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
     children: [
       Row(children: [
