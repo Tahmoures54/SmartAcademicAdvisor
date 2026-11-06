@@ -3,16 +3,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
+Finder get _bodyScrollable => find.descendant(
+  of: find.byType(SafeArea),
+  matching: find.byType(Scrollable),
+).first;
+
+Future<void> _pumpAdvisor(WidgetTester tester) async {
+  await tester.pumpWidget(const AcademicAdvisorApp());
+  await tester.pumpAndSettle();
+  // Allow the asynchronous SharedPreferences load to finish before interacting.
+  await tester.pump(const Duration(milliseconds: 20));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('shows academic stages and guidance form', (tester) async {
-    await tester.pumpWidget(const AcademicAdvisorApp());
-    await tester.pumpAndSettle();
+    await _pumpAdvisor(tester);
     expect(find.text('همراه تحصیلی'), findsOneWidget);
     expect(find.text('ابتدایی'), findsOneWidget);
     expect(find.text('کنکوری'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: find.byType(Scrollable).last);
+      scrollable: _bodyScrollable);
     await tester.pumpAndSettle();
     expect(find.text('از مشاور تحصیلی بپرس'), findsOneWidget);
   });
