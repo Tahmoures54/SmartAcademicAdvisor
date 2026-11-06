@@ -27,16 +27,12 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
-      - name: Build debug APK with optional AI provider credentials
+      - name: Build debug APK using the server-side advisor proxy
         env:
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_BASE_URL: ${{ vars.AI_BASE_URL }}
-          AI_MODEL: ${{ vars.AI_MODEL }}
+          ADVISOR_API_BASE_URL: ${{ vars.ADVISOR_API_BASE_URL }}
         run: |
           flutter build apk --debug \
-            --dart-define=AI_API_KEY="$AI_API_KEY" \
-            --dart-define=AI_BASE_URL="${AI_BASE_URL:-https://api.deepseek.com}" \
-            --dart-define=AI_MODEL="${AI_MODEL:-deepseek-chat}"
+            --dart-define=ADVISOR_API_BASE_URL="$ADVISOR_API_BASE_URL"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
