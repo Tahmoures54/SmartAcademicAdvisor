@@ -1156,7 +1156,9 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (!_localDataLoaded)
             const Padding(padding: EdgeInsets.only(bottom: 10), child: LinearProgressIndicator()),
-          TextField(controller: _newTaskController,
+          TextField(
+            key: const Key('planner-task-field'),
+            controller: _newTaskController,
             enabled: _localDataLoaded,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _addStudyTask(),
