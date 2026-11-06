@@ -209,8 +209,8 @@ void main() {
     await tester.pumpAndSettle();
     await _scrollPlannerUntilVisible(tester, find.text('افزودن سؤال برای مرور'));
     await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور'));
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور'));
     await tester.pumpAndSettle();
     await tester.enterText(_dialogFields.at(0), 'زیست');
     await tester.enterText(_dialogFields.at(1), 'میتوکندری چه می‌کند؟');
@@ -222,7 +222,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('study_review_cards'), contains('میتوکندری'));
     await _scrollPlannerUntilVisible(tester, find.byTooltip('مرور سؤال'));
-    await tester.tap(find.byTooltip('مرور سؤال').first);
+    await tester.tap(find.byTooltip('مرور سؤال'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('نمایش پاسخ'));
     await tester.tap(find.text('نمایش پاسخ'));
@@ -265,8 +265,8 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await _scrollPlannerUntilVisible(tester, find.text('مربی آموزشی قدم‌به‌قدم'));
-    await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
+    await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, 'کسرها');
     await _scrollPlannerUntilVisible(tester, find.text('شروع یادگیری'));
