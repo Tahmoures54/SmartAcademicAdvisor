@@ -43,7 +43,7 @@ void main() {
     expect(find.text('همراه تحصیلی'), findsOneWidget);
     expect(find.text('ابتدایی'), findsOneWidget);
     expect(find.text('کنکوری'), findsOneWidget);
-    await tester.ensureVisible(find.text('از مشاور تحصیلی بپرس'), 400,
+    await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
       scrollable: _bodyScrollable);
     await tester.pumpAndSettle();
     expect(find.text('از مشاور تحصیلی بپرس'), findsOneWidget);
@@ -124,7 +124,7 @@ void main() {
     await tester.tap(find.text('ساخت برنامهٔ مرور'));
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'));
+    await tester.ensureVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'));
     expect(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), findsOneWidget);
     expect(find.text('حل چند سؤال تمرینی از ریاضی'), findsOneWidget);
     final taskPrefs = await SharedPreferences.getInstance();
@@ -223,7 +223,6 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
-    await tester.ensureVisible(adaptivePlanButton);
     await tester.ensureVisible(adaptivePlanButton);
     await tester.pumpAndSettle();
     await tester.tap(adaptivePlanButton);
