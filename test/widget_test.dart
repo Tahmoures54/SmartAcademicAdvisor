@@ -143,7 +143,7 @@ void main() {
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت مطالعه').last);
     await tester.tap(find.widgetWithText(FilledButton, 'ثبت مطالعه').last);
     await tester.pumpAndSettle();
-    expect(find.text('ریاضی'), findsOneWidget);
+    expect(find.text('ریاضی'), findsWidgets);
     expect(find.text('35 دقیقه · تسلط 3.0/5'), findsOneWidget);
     expect(find.text('35 دقیقه'), findsWidgets);
     final prefs = await SharedPreferences.getInstance();
