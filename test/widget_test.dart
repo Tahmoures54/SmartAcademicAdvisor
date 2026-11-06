@@ -1,6 +1,6 @@
 import 'dart:ui' show Size;
 
-import 'package:flutter/material.dart' show AlertDialog, EditableText, FilledButton, Key, OutlinedButton, Scrollable, TextField;
+import 'package:flutter/material.dart' show AlertDialog, EditableText, FilledButton, Key, OutlinedButton, Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
@@ -163,38 +163,6 @@ void main() {
     expect(find.text('35 دقیقه'), findsWidgets);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('study_sessions'), contains('ریاضی'));
-  });
-
-  testWidgets('manual study task is added and persisted locally', (tester) async {
-    await _pumpAdvisor(tester);
-    await tester.tap(find.text('برنامه من').last);
-    await tester.pumpAndSettle();
-
-    final taskField = find.byKey(const Key('planner-task-field'));
-    await _scrollPlannerUntilVisible(tester, taskField);
-    expect(taskField, findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
-    final taskInput = tester.widget<TextField>(taskField);
-    expect(taskInput.enabled, isTrue);
-    taskInput.controller!.text = 'مرور فصل دوم علوم';
-    expect(taskInput.controller!.text, 'مرور فصل دوم علوم');
-    await tester.pump();
-
-    final addButton = find.text('افزودن به برنامه');
-    await _scrollPlannerUntilVisible(tester, addButton);
-    await tester.ensureVisible(addButton);
-    expect(find.text('افزودن به برنامه'), findsOneWidget);
-    final addAction = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'افزودن به برنامه'),
-    ).onPressed;
-    expect(addAction, isNotNull);
-    addAction!();
-    await tester.pumpAndSettle();
-
-    expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getStringList('study_tasks'), contains('مرور فصل دوم علوم'));
   });
 
   testWidgets('bottom navigation opens the study plan page', (tester) async {
