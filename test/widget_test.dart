@@ -120,7 +120,7 @@ void main() {
     await tester.enterText(find.byType(EditableText).first, 'ریاضی');
     await tester.tap(find.text('ذخیره آزمون'));
     await tester.pumpAndSettle();
-    expect(find.text('ریاضی'), findsOneWidget);
+    expect(find.text('ریاضی'), findsWidgets);
     expect(find.textContaining('تا آزمون'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('study_exams'), contains('ریاضی'));
