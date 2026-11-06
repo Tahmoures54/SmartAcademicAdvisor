@@ -12,10 +12,10 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.ancestor(
-  of: find.byKey(const Key('study-planner-scroll')),
-  matching: find.byType(Scrollable),
-).first;
+// The planner's ListView key is not an ancestor/descendant of the
+// Scrollable element in the built widget tree; it is the sole page scrollable
+// when the planner tab is active.
+Finder get _plannerScrollable => find.byType(Scrollable).first;
 
 Finder get _assessmentScrollable => find.descendant(
   of: find.byKey(const Key('assessment-scroll')),
