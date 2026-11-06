@@ -77,7 +77,7 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
         : 'پایهٔ مناسبی برای مطالعهٔ مؤثر داری. برای تثبیت نتیجه، از خودآزمایی، مرور دوره‌ای و تحلیل اشتباه‌ها استفاده کن.';
     return Scaffold(
       appBar: AppBar(title: const Text('ارزیابی روش مطالعه')),
-      body: ListView(padding: const EdgeInsets.all(18), children: [
+      body: ListView(key: const Key('assessment-scroll'), padding: const EdgeInsets.all(18), children: [
         const Text('به چهار پرسش زیر صادقانه پاسخ بده. این ارزیابی کوتاه، آزمون علمی یا تشخیص تخصصی نیست؛ فقط برای شروع گفت‌وگو دربارهٔ عادت‌های مطالعه است.',
           style: TextStyle(height: 1.8)),
         const SizedBox(height: 12),
