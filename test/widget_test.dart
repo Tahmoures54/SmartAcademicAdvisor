@@ -41,7 +41,7 @@ void main() {
     expect(find.text('ابتدایی'), findsOneWidget);
     expect(find.text('کنکوری'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
+      scrollable: _bodyScrollable);
     await tester.pumpAndSettle();
     expect(find.text('از مشاور تحصیلی بپرس'), findsOneWidget);
   });
@@ -49,7 +49,7 @@ void main() {
   testWidgets('submits a question and labels demo guidance', (tester) async {
     await _pumpAdvisor(tester);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
+      scrollable: _bodyScrollable);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).first, 'چطور درس بخوانم؟');
     await tester.ensureVisible(find.text('دریافت راهنمایی'));
@@ -63,7 +63,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('ابتدایی').first);
     await tester.scrollUntilVisible(find.text('از مشاور تحصیلی بپرس'), 400,
-      scrollable: _scrollableFor(find.text('از مشاور تحصیلی بپرس')));
+      scrollable: _bodyScrollable);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).first, 'چطور بهتر درس بخوانم؟');
     await tester.ensureVisible(find.text('دریافت راهنمایی'));
@@ -76,24 +76,24 @@ void main() {
   testWidgets('study self-assessment calculates a guidance score', (tester) async {
     await _pumpAdvisor(tester);
     await tester.scrollUntilVisible(find.text('ارزیابی سریع روش مطالعه'), 300,
-      scrollable: _scrollableFor(find.text('ارزیابی سریع روش مطالعه')));
+      scrollable: _bodyScrollable);
     await tester.ensureVisible(find.text('ارزیابی سریع روش مطالعه'));
     await tester.tap(find.text('ارزیابی سریع روش مطالعه'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('به‌سختی'), 300,
-      scrollable: _scrollableFor(find.text('به‌سختی')));
+      scrollable: _assessmentScrollable);
     await tester.ensureVisible(find.text('به‌سختی'));
     await tester.tap(find.text('به‌سختی'));
     await tester.scrollUntilVisible(find.text('خیلی زود'), 300,
-      scrollable: _scrollableFor(find.text('خیلی زود')));
+      scrollable: _assessmentScrollable);
     await tester.ensureVisible(find.text('خیلی زود'));
     await tester.tap(find.text('خیلی زود'));
     await tester.scrollUntilVisible(find.text('به‌ندرت'), 300,
-      scrollable: _scrollableFor(find.text('به‌ندرت')));
+      scrollable: _assessmentScrollable);
     await tester.ensureVisible(find.text('به‌ندرت'));
     await tester.tap(find.text('به‌ندرت'));
     await tester.scrollUntilVisible(find.text('اغلب سنگین است'), 300,
-      scrollable: _scrollableFor(find.text('اغلب سنگین است')));
+      scrollable: _assessmentScrollable);
     await tester.ensureVisible(find.text('اغلب سنگین است'));
     await tester.tap(find.text('اغلب سنگین است'));
     await tester.pumpAndSettle();
