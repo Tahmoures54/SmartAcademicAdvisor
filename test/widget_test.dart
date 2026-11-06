@@ -246,7 +246,7 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const Key('study-planner-scroll')), findsOneWidget);
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    await tester.ensureVisible(find.textContaining('مرور فعال'));
+    await _scrollPlannerUntilVisible(tester, find.textContaining('مرور فعال'));
     expect(find.textContaining('مرور فعال'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), isNotEmpty);
@@ -257,8 +257,8 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('مربی آموزشی قدم‌به‌قدم'));
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
+    await _scrollPlannerUntilVisible(tester, find.text('مربی آموزشی قدم‌به‌قدم'));
+    await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
     await tester.tap(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, 'کسرها');
