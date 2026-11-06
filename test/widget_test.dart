@@ -170,8 +170,12 @@ void main() {
     expect(find.text('دوشنبه'), findsWidgets);
     await _scrollPlannerUntilVisible(tester, find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    await _scrollPlannerUntilVisible(tester, find.byType(EditableText).last);
-    await tester.ensureVisible(find.byType(EditableText).last);
+    final taskField = find.byWidgetPredicate(
+      (widget) => widget is TextField &&
+        widget.decoration?.hintText == 'مثلاً: مرور فصل دوم علوم',
+    );
+    await _scrollPlannerUntilVisible(tester, taskField);
+    await tester.ensureVisible(taskField);
     await tester.enterText(find.byType(EditableText).last, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
@@ -204,7 +208,7 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await _scrollPlannerUntilVisible(tester, find.text('افزودن سؤال برای مرور'));
-    await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
+    await _scrollPlannerUntilVisible(tester, find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور'));
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.pumpAndSettle();
@@ -217,7 +221,7 @@ void main() {
     expect(find.text('میتوکندری چه می‌کند؟'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('study_review_cards'), contains('میتوکندری'));
-    await _scrollPlannerUntilVisible(tester, find.byTooltip('مرور سؤال').first);
+    await _scrollPlannerUntilVisible(tester, find.byTooltip('مرور سؤال'));
     await tester.tap(find.byTooltip('مرور سؤال').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('نمایش پاسخ'));
@@ -233,7 +237,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
+    final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی');
     await _scrollPlannerUntilVisible(tester, adaptivePlanButton);
     await tester.ensureVisible(adaptivePlanButton);
     await tester.pumpAndSettle();
