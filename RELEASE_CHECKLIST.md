@@ -1,30 +1,40 @@
 # Release readiness checklist
 
-This is a development checklist, not a claim that the app is ready for public release.
+This is an evidence-based checklist, not a claim that the app is ready for public release.
 
 ## Automated checks
-- [ ] Flutter analyze passes on the latest main commit.
-- [ ] Flutter widget tests pass on the latest main commit.
-- [ ] Android debug APK build succeeds and the workflow artifact is available.
+- [ ] Flutter analyze passes on the latest release candidate.
+- [ ] Flutter widget tests pass on the latest release candidate.
 - [ ] Backend unit tests pass.
+- [ ] Backend Docker image builds successfully in CI.
+- [ ] Debug APK artifact is available for QA.
+- [ ] Signed release APK is built from a protected signing secret and its signature is verified.
+
+## Backend and AI
+- [ ] Deploy the backend to an HTTPS host and verify both `/health` and `/ready`.
+- [ ] Keep `AI_API_KEY` only in the hosting provider's secret environment.
+- [ ] Set provider-side hard spending limits and usage alerts.
+- [ ] Test valid response, missing key, provider 429/5xx, timeout, malformed response, and cold-start behavior.
+- [ ] Replace the in-process throttle with shared rate limiting or an authenticated access design before unrestricted public launch.
+- [ ] Set GitHub Actions variable `ADVISOR_API_BASE_URL` to the verified backend URL.
 
 ## Product and privacy
-- [ ] Test the app on a real Android phone and multiple screen sizes.
-- [ ] Confirm task and note data survive force-close and device restart.
-- [ ] Confirm deleting local data removes saved preferences and notes.
-- [ ] Decide whether AI requests are enabled for the first public release.
-- [ ] If AI is enabled, deploy backend over HTTPS, configure the provider key only on the server, and test provider failure, timeout, and quota behavior.
-- [ ] Publish a privacy policy appropriate for student/minor users and explain when questions leave the device.
-- [ ] Review the Persian content and educational guidance with a qualified advisor.
+- [ ] Test on a real Android phone and multiple screen sizes.
+- [ ] Confirm tasks, notes, exam records, and preferences survive force-close and device restart.
+- [ ] Confirm the user can delete locally stored data.
+- [ ] Decide whether live AI is enabled for the first public release.
+- [ ] Publish a privacy policy URL and explain when questions leave the device and are sent to the backend/provider.
+- [ ] Review Persian content and educational guidance with a qualified advisor.
+- [ ] Review privacy and child-safety obligations for the intended release countries and age groups.
 
 ## Android and Cafe Bazaar
-- [ ] Choose and permanently confirm the Android application ID/package name.
-- [ ] Add final app icon, app name, version code, and version name.
-- [ ] Confirm the required Android permissions are minimal.
-- [ ] Configure release signing securely; do not commit signing keys or passwords.
-- [ ] Build a release APK/AAB as required by the current Bazaar submission rules.
-- [ ] Install and test the signed release build on a real device.
+- [ ] Verify the chosen application ID is not already used by another published app.
+- [ ] Add final app icon, Persian app label, version code, and version name.
+- [ ] Confirm the release manifest contains only required permissions, including internet access for the API.
+- [ ] Configure release signing through GitHub secrets; never commit keystores or passwords.
+- [ ] Build and verify the signed release APK/AAB according to the current Bazaar submission requirements.
+- [ ] Install the signed release build on a real device and test offline/online transitions.
 - [ ] Prepare store screenshots, short/long descriptions, support contact, and privacy-policy URL.
 - [ ] Submit to Bazaar only after all checks above are completed.
 
-The current CI artifact is a **debug APK for testing**, not a signed release package.
+The current CI artifact named `smart-academic-advisor-debug-apk` is a debug build for testing, not a signed production release.
