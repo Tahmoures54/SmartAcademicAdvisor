@@ -6,9 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _advisorApiBaseUrl = String.fromEnvironment('ADVISOR_API_BASE_URL');
-const _aiApiKey = String.fromEnvironment('AI_API_KEY');
-const _aiBaseUrl = String.fromEnvironment('AI_BASE_URL', defaultValue: 'https://api.deepseek.com');
-const _aiModel = String.fromEnvironment('AI_MODEL', defaultValue: 'deepseek-chat');
 
 void main() => runApp(const AcademicAdvisorApp());
 
@@ -271,52 +268,6 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
   };
 
   Future<String?> _requestAiAnswer(String question) async {
-    final apiKey = _aiApiKey.trim();
-    if (apiKey.isNotEmpty) {
-      var baseUrl = _aiBaseUrl.trim();
-      while (baseUrl.endsWith('/')) {
-        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-      }
-      if (!baseUrl.endsWith('/chat/completions')) {
-        baseUrl = '$baseUrl/chat/completions';
-      }
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': _aiModel,
-          'messages': [
-            {
-              'role': 'system',
-              'content': 'تو مربی آموزشی فارسی‌زبان و صبور هستی. پاسخ را متناسب با مقطع تحصیلی کاربر تنظیم کن. ابتدا فهم مسئله را روشن کن، مطالب را مرحله‌به‌مرحله توضیح بده، مثال ساده بزن و در پایان یک سؤال یا تمرین کوتاه برای سنجش فهم بده. اگر اطلاعات کافی نیست، سؤال روشن‌کننده بپرس. برای کودکان ساده و امن توضیح بده. نتیجه یا اطلاعات پذیرش دانشگاه را تضمین نکن.',
-            },
-            {
-              'role': 'user',
-              'content': 'مقطع: $_stage\nموضوع: $_goal\nدرخواست: $question',
-            },
-          ],
-          'temperature': 0.4,
-          'max_tokens': 800,
-          'stream': false,
-        }),
-      ).timeout(const Duration(seconds: 35));
-      if (response.statusCode != 200) {
-        throw const FormatException('AI provider returned an error');
-      }
-      final payload = jsonDecode(response.body);
-      final choices = payload is Map<String, dynamic> ? payload['choices'] : null;
-      final message = choices is List && choices.isNotEmpty && choices.first is Map
-        ? choices.first['message'] : null;
-      final content = message is Map ? message['content'] : null;
-      if (content is! String || content.trim().isEmpty) {
-        throw const FormatException('AI provider returned an invalid response');
-      }
-      return content.trim();
-    }
-
     final baseUrl = _advisorApiBaseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
     if (baseUrl.isEmpty) return null;
     final response = await http.post(
@@ -348,10 +299,10 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       'پیشنهاد دربارهٔ موضوع انتخابی: ${_goalAdvice()}\n\n'
       'سؤال شما: «$question»\n'
       'یک اقدام کوچک و قابل سنجش برای امروز انتخاب کنید و نتیجه را بعداً ارزیابی کنید.\n\n'
-      'این راهنمای قاعده‌محور و عمومی است؛ برای پاسخ اختصاصی مربی هوش مصنوعی، کلید API یا آدرس سرویس باید در ساخت برنامه تنظیم شده باشد.';
+      'این راهنمای قاعده‌محور و عمومی است؛ برای پاسخ اختصاصی مربی هوش مصنوعی، سرویس واسط امن باید پیکربندی شده باشد.';
     setState(() => _answer = fallback);
 
-    if (_aiApiKey.trim().isEmpty && _advisorApiBaseUrl.trim().isEmpty) return;
+    if (_advisorApiBaseUrl.trim().isEmpty) return;
     if (mounted) setState(() => _answer = 'در حال دریافت پاسخ از مربی هوش مصنوعی…');
     try {
       final aiAnswer = await _requestAiAnswer(question);
@@ -886,7 +837,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
     if (topic == null || !mounted) return;
 
     var aiAnswer = '';
-    if (_aiApiKey.trim().isNotEmpty || _advisorApiBaseUrl.trim().isNotEmpty) {
+    if (_advisorApiBaseUrl.trim().isNotEmpty) {
       try {
         aiAnswer = await _requestAiAnswer(
           'به عنوان مربی قدم‌به‌قدم آموزش بده. مبحث: $topic. '
