@@ -12,7 +12,7 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.ancestor(
+Finder get _plannerScrollable => find.descendant(
   of: find.byKey(const Key('study-planner-scroll')),
   matching: find.byType(Scrollable),
 ).first;
