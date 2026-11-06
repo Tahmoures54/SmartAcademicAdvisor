@@ -12,7 +12,7 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.descendant(
+Finder get _plannerScrollable => find.ancestor(
   of: find.byKey(const Key('study-planner-scroll')),
   matching: find.byType(Scrollable),
 ).first;
@@ -227,7 +227,6 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('ساخت برنامهٔ پیشنهادی'));
     final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
     await tester.scrollUntilVisible(adaptivePlanButton, 300, scrollable: _plannerScrollable);
     await tester.ensureVisible(adaptivePlanButton);
