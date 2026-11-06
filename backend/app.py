@@ -1,7 +1,7 @@
-"""Small server-side proxy for educational-advice model requests.
+"""Server-side proxy for educational-advice model requests.
 
-Secrets must be supplied through environment variables, never committed to source
-or embedded in the Android application.
+Provider credentials are read only from server environment variables.
+The app deliberately does not persist student questions or answers.
 """
 from __future__ import annotations
 
@@ -10,12 +10,19 @@ import os
 import time
 from collections import defaultdict, deque
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from flask import Flask, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+
+# Trust forwarded client/protocol headers only when running behind a known
+# reverse proxy (enabled explicitly in the Render blueprint).
+if os.getenv("TRUST_PROXY_HEADERS", "").strip().lower() in {"1", "true", "yes"}:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_port=0)
 
 _rate_buckets: dict[str, deque[float]] = defaultdict(deque)
 _ALLOWED_STAGES = {
@@ -26,13 +33,18 @@ _ALLOWED_GOALS = {
 }
 
 
-def _is_rate_limited(client_key: str) -> bool:
-    """Basic per-process throttle; production deployments need shared rate limiting."""
+def _positive_int_env(name: str, default: int, minimum: int, maximum: int) -> int:
     try:
-        minute_limit = max(1, int(os.getenv("MAX_REQUESTS_PER_MINUTE", "10")))
-        daily_limit = max(1, int(os.getenv("MAX_REQUESTS_PER_DAY", "50")))
-    except ValueError:
-        minute_limit, daily_limit = 10, 50
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return min(max(value, minimum), maximum)
+
+
+def _is_rate_limited(client_key: str) -> bool:
+    """Single-process throttle; production multi-instance use needs shared storage."""
+    minute_limit = _positive_int_env("MAX_REQUESTS_PER_MINUTE", 10, 1, 120)
+    daily_limit = _positive_int_env("MAX_REQUESTS_PER_DAY", 50, 1, 2000)
     now = time.monotonic()
     bucket = _rate_buckets[client_key]
     while bucket and now - bucket[0] >= 24 * 60 * 60:
@@ -52,9 +64,44 @@ def _chat_completions_url(base_url: str) -> str:
     return value + "/chat/completions"
 
 
+def _valid_provider_base_url(value: str) -> bool:
+    """Require HTTPS and reject user-info, query strings, and fragments."""
+    try:
+        parsed = urlsplit(value)
+        return (
+            parsed.scheme == "https"
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+            and not parsed.query
+            and not parsed.fragment
+        )
+    except ValueError:
+        return False
+
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/health")
 def health():
+    # Liveness only: hosting health checks must work before a provider key is set.
     return jsonify({"status": "ok"})
+
+
+@app.get("/ready")
+def ready():
+    api_key = os.getenv("AI_API_KEY", "").strip()
+    base_url = os.getenv("AI_BASE_URL", "https://api.deepseek.com").strip()
+    model = os.getenv("AI_MODEL", "deepseek-chat").strip()
+    if not api_key or not model or len(model) > 100 or not _valid_provider_base_url(base_url):
+        return jsonify({"status": "not_ready"}), 503
+    return jsonify({"status": "ready"})
 
 
 @app.post("/api/advice")
@@ -69,15 +116,19 @@ def advice():
     stage = payload.get("stage")
     goal = payload.get("goal")
     question = payload.get("question")
-    if stage not in _ALLOWED_STAGES or goal not in _ALLOWED_GOALS:
+    if not isinstance(stage, str) or stage not in _ALLOWED_STAGES:
+        return jsonify({"error": "Choose a valid study stage and topic"}), 400
+    if not isinstance(goal, str) or goal not in _ALLOWED_GOALS:
         return jsonify({"error": "Choose a valid study stage and topic"}), 400
     if not isinstance(question, str) or not question.strip() or len(question) > 1500:
         return jsonify({"error": "Question must contain 1 to 1500 characters"}), 400
 
-    # Do not trust caller-supplied X-Forwarded-For unless a trusted proxy is configured.
+    # Do not trust caller-supplied X-Forwarded-For unless a trusted proxy is enabled.
     client_key = (request.remote_addr or "unknown")[:80]
     if _is_rate_limited(client_key):
-        return jsonify({"error": "Too many requests. Please try again shortly."}), 429
+        return jsonify({"error": "Too many requests. Please try again shortly."}), 429, {
+            "Retry-After": "60"
+        }
 
     api_key = os.getenv("AI_API_KEY", "").strip()
     if not api_key:
@@ -85,7 +136,7 @@ def advice():
 
     base_url = os.getenv("AI_BASE_URL", "https://api.deepseek.com").strip()
     model = os.getenv("AI_MODEL", "deepseek-chat").strip()
-    if not base_url or not model:
+    if not model or len(model) > 100 or not _valid_provider_base_url(base_url):
         return jsonify({"error": "AI provider configuration is incomplete"}), 503
 
     system_prompt = (
@@ -120,14 +171,18 @@ def advice():
         method="POST",
     )
 
+    timeout_seconds = _positive_int_env("AI_REQUEST_TIMEOUT_SECONDS", 30, 5, 60)
     try:
-        with urlopen(outbound, timeout=30) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        with urlopen(outbound, timeout=timeout_seconds) as response:
+            raw_result = response.read(64 * 1024 + 1)
+        if len(raw_result) > 64 * 1024:
+            raise ValueError("Provider response is too large")
+        result = json.loads(raw_result.decode("utf-8"))
         answer_text = result["choices"][0]["message"]["content"]
-        if not isinstance(answer_text, str) or not answer_text.strip():
-            raise ValueError("Empty model response")
+        if not isinstance(answer_text, str) or not answer_text.strip() or len(answer_text) > 12000:
+            raise ValueError("Invalid model response")
     except HTTPError as exc:
-        # Do not return upstream response bodies, which may contain provider details.
+        # Never return upstream response bodies, which may contain provider details.
         app.logger.warning("AI provider returned HTTP %s", exc.code)
         status = 429 if exc.code == 429 else 502
         return jsonify({"error": "AI provider could not complete the request"}), status
