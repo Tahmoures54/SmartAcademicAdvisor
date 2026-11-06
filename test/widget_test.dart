@@ -1,11 +1,18 @@
 import 'dart:ui' show Size;
 
-import 'package:flutter/material.dart' show EditableText, Scrollable;
+import 'package:flutter/material.dart' show AlertDialog, CustomScrollView, EditableText, FilledButton, ListView, Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
 
-Finder get _bodyScrollable => find.byType(Scrollable).first;
+Finder get _bodyScrollable => find.byType(CustomScrollView).first;
+
+Finder get _plannerScrollable => find.byType(ListView).first;
+
+Finder get _dialogFields => find.descendant(
+  of: find.byType(AlertDialog).last,
+  matching: find.byType(EditableText),
+);
 
 Finder get _assessmentScrollable => find.descendant(
   of: find.byType(StudyAssessmentPage),
@@ -127,14 +134,14 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ثبت جلسهٔ مطالعه'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     await tester.ensureVisible(find.text('ثبت جلسهٔ مطالعه'));
     await tester.tap(find.text('ثبت جلسهٔ مطالعه'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).at(0), 'ریاضی');
-    await tester.enterText(find.byType(EditableText).at(1), '35');
-    await tester.ensureVisible(find.text('ثبت مطالعه'));
-    await tester.tap(find.text('ثبت مطالعه'));
+    await tester.enterText(_dialogFields.at(0), 'ریاضی');
+    await tester.enterText(_dialogFields.at(1), '35');
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت مطالعه'));
+    await tester.tap(find.widgetWithText(FilledButton, 'ثبت مطالعه'));
     await tester.pumpAndSettle();
     expect(find.text('ریاضی'), findsOneWidget);
     expect(find.text('35 دقیقه · تسلط 3.0/5'), findsOneWidget);
@@ -149,14 +156,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('برنامهٔ هفت روز آینده'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('برنامهٔ هفت روز آینده'), findsOneWidget);
     expect(find.text('دوشنبه'), findsWidgets);
     await tester.scrollUntilVisible(find.text('هنوز کاری ثبت نشده است'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('مثلاً: مرور فصل دوم علوم'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     await tester.enterText(find.byType(EditableText).first, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
@@ -174,16 +181,16 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('گزارش هفتگی پیشرفت'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('گزارش هفتگی پیشرفت'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('مرور فاصله‌دار و نقاط ضعف'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('مرور فاصله‌دار و نقاط ضعف'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('نقشهٔ تسلط و اولویت یادگیری'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('نقشهٔ تسلط و اولویت یادگیری'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.text('ساخت برنامهٔ پیشنهادی'), findsOneWidget);
     expect(find.text('مربی آموزشی قدم‌به‌قدم'), findsOneWidget);
   });
@@ -193,12 +200,13 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('افزودن سؤال برای مرور'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('افزودن سؤال برای مرور'));
     await tester.tap(find.text('افزودن سؤال برای مرور'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).at(0), 'زیست');
-    await tester.enterText(find.byType(EditableText).at(1), 'میتوکندری چه می‌کند؟');
-    await tester.enterText(find.byType(EditableText).at(2), 'در تولید انرژی سلول نقش دارد.');
+    await tester.enterText(_dialogFields.at(0), 'زیست');
+    await tester.enterText(_dialogFields.at(1), 'میتوکندری چه می‌کند؟');
+    await tester.enterText(_dialogFields.at(2), 'در تولید انرژی سلول نقش دارد.');
     await tester.ensureVisible(find.text('ذخیره کارت'));
     await tester.tap(find.text('ذخیره کارت'));
     await tester.pumpAndSettle();
@@ -222,7 +230,8 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('ساخت برنامهٔ پیشنهادی'));
     await tester.tap(find.text('ساخت برنامهٔ پیشنهادی'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('ساخت برنامه').last);
@@ -230,7 +239,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('مرور فعال'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
     expect(find.textContaining('مرور فعال'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), isNotEmpty);
@@ -242,7 +251,8 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
-      scrollable: _bodyScrollable);
+      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('مربی آموزشی قدم‌به‌قدم'));
     await tester.tap(find.text('مربی آموزشی قدم‌به‌قدم'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).last, 'کسرها');
