@@ -90,6 +90,7 @@ void main() {
     await tester.ensureVisible(find.text('اغلب سنگین است'));
     await tester.tap(find.text('اغلب سنگین است'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('نمایش جمع‌بندی'));
     await tester.tap(find.text('نمایش جمع‌بندی'));
     await tester.pumpAndSettle();
     expect(find.text('امتیاز راهنمایی: 2 از 8'), findsOneWidget);
@@ -132,6 +133,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).at(0), 'ریاضی');
     await tester.enterText(find.byType(EditableText).at(1), '35');
+    await tester.ensureVisible(find.text('ثبت مطالعه'));
     await tester.tap(find.text('ثبت مطالعه'));
     await tester.pumpAndSettle();
     expect(find.text('ریاضی'), findsOneWidget);
@@ -206,8 +208,10 @@ void main() {
     await tester.ensureVisible(find.byTooltip('مرور سؤال').first);
     await tester.tap(find.byTooltip('مرور سؤال').first);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('نمایش پاسخ'));
     await tester.tap(find.text('نمایش پاسخ'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('بلد بودم'));
     await tester.tap(find.text('بلد بودم'));
     await tester.pumpAndSettle();
     expect(prefs.getString('study_review_cards'), contains('"interval":"1"'));
