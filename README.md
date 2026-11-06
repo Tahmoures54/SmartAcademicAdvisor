@@ -4,34 +4,32 @@
 
 ## قابلیت‌های شاخهٔ main
 
-- داشبورد فارسی با انتخاب مقطع و موضوع راهنمایی
-- راهنمای قاعده‌محور آفلاین + اتصال اختیاری به AI/backend
-- برنامهٔ درسی: افزودن کار، تیک انجام، تایمر تمرکز ۲۵ دقیقه‌ای
+- داشبورد با انتخاب مقطع و موضوع راهنمایی
+- راهنمای قاعده‌محور آفلاین + اتصال اختیاری AI/backend
+- برنامهٔ درسی: کارها، تیک انجام، تایمر تمرکز ۲۵ دقیقه‌ای
 - دفتر آزمون‌ها با تاریخ، شمارش معکوس و نمره
 - یادداشت‌های محلی
 - پروفایل و حذف داده‌های ذخیره‌شده
 - ارزیابی سریع روش مطالعه
 - backend پایتون و CI در GitHub Actions
 
-## معماری کد
+## معماری
 
 ```
 lib/
-  main.dart                 # ورود + UI اصلی (متصل به سرویس‌ها)
+  main.dart                 # ورود + UI کامل (متصل به سرویس‌ها)
   app.dart                  # MaterialApp و تم
-  config/app_config.dart    # dart-define و ثابت‌ها
+  config/app_config.dart
   models/                   # Exam, StudySession, ReviewCard, PlannerSnapshot
   services/
-    local_store.dart        # SharedPreferences (کلیدهای سازگار قبلی)
-    offline_advice.dart     # راهنمای قاعده‌محور
-    advisor_api.dart        # AI مستقیم یا backend
+    local_store.dart        # SharedPreferences با کلیدهای سازگار قبلی
+    offline_advice.dart
+    advisor_api.dart
   features/
     assessment/study_assessment_page.dart
 ```
 
-ذخیره‌سازی محلی همان کلیدهای قبلی را نگه می‌دارد تا دادهٔ کاربران از بین نرود.
-
-## اجرای اپ
+## اجرا
 
 ```bash
 flutter create --platforms=android .
@@ -41,35 +39,28 @@ flutter test
 flutter run
 ```
 
-ساخت APK آزمایشی:
-
 ```bash
 flutter build apk --debug
 ```
 
-برای AI زنده، یا backend با `ADVISOR_API_BASE_URL`، یا Secretهای Actions برای تزریق کلید در بیلد آزمایشی. برای انتشار عمومی فقط کلید سمت سرور توصیه می‌شود.
+برای AI زنده:
 
 ```bash
 flutter run --dart-define=ADVISOR_API_BASE_URL=https://your-api.example
 ```
 
-## اجرای backend
+یا Secretهای `AI_API_KEY` در Actions برای بیلد آزمایشی. برای انتشار عمومی فقط کلید سمت سرور توصیه می‌شود.
+
+## Backend
 
 جزئیات در [backend/README.md](backend/README.md).
 
 ```bash
-cd backend
-pip install -r requirements.txt
-python -m unittest -v test_app.py
+cd backend && pip install -r requirements.txt && python -m unittest -v test_app.py
 ```
 
-## محدودیت‌های فعلی
+## محدودیت‌ها
 
-- backend روی میزبان عمومی مستقر نشده است.
-- همگام‌سازی ابری و حساب کاربری وجود ندارد.
-- برخی قابلیت‌های پیشرفتهٔ قبلی (مرور فاصله‌دار کامل، برنامهٔ تطبیقی خودکار، مربی سه‌مرحله‌ای غنی) در لایهٔ UI در حال تکمیل مجدد روی معماری جدید هستند؛ هستهٔ برنامه/آزمون/تایمر/یادداشت فعال است.
+- backend عمومی هنوز deploy نشده است.
+- همگام‌سازی ابری وجود ندارد.
 - ارزیابی مطالعه تشخیص علمی نیست.
-
-## حریم خصوصی
-
-پرسش‌ها فقط با پیکربندی backend از دستگاه خارج می‌شوند. اطلاعات حساس وارد نکنید.
