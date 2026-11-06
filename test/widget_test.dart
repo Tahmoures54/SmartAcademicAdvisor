@@ -8,6 +8,11 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
+Finder get _assessmentScrollable => find.descendant(
+  of: find.byType(StudyAssessmentPage),
+  matching: find.byType(Scrollable),
+).first;
+
 Future<void> _pumpAdvisor(WidgetTester tester) async {
   await tester.pumpWidget(const AcademicAdvisorApp());
   await tester.pumpAndSettle();
@@ -59,20 +64,20 @@ void main() {
   testWidgets('study self-assessment calculates a guidance score', (tester) async {
     await _pumpAdvisor(tester);
     await tester.scrollUntilVisible(find.text('ارزیابی سریع روش مطالعه'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _assessmentScrollable);
     await tester.tap(find.text('ارزیابی سریع روش مطالعه'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('به‌سختی'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _assessmentScrollable);
     await tester.tap(find.text('به‌سختی'));
     await tester.scrollUntilVisible(find.text('خیلی زود'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _assessmentScrollable);
     await tester.tap(find.text('خیلی زود'));
     await tester.scrollUntilVisible(find.text('به‌ندرت'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _assessmentScrollable);
     await tester.tap(find.text('به‌ندرت'));
     await tester.scrollUntilVisible(find.text('اغلب سنگین است'), 300,
-      scrollable: _bodyScrollable);
+      scrollable: _assessmentScrollable);
     await tester.tap(find.text('اغلب سنگین است'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('نمایش جمع‌بندی'));
