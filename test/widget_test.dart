@@ -12,10 +12,9 @@ Finder get _bodyScrollable => find.descendant(
   matching: find.byType(Scrollable),
 ).first;
 
-Finder get _plannerScrollable => find.descendant(
-  of: find.byKey(const Key('study-planner-scroll')),
-  matching: find.byType(Scrollable),
-).first;
+// The planner can contain nested scrollables; the page's ListView is the
+// final Scrollable in the active page subtree.
+Finder get _plannerScrollable => find.byType(Scrollable).last;
 
 Finder get _assessmentScrollable => find.descendant(
   of: find.byType(StudyAssessmentPage),
@@ -246,8 +245,9 @@ void main() {
     await tester.tap(adaptivePlanButton);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'ساخت برنامه').last);
-    await tester.tap(find.text('ساخت برنامه').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'ساخت برنامه').last);
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('study-planner-scroll')), findsOneWidget);
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('مرور فعال'), 300,
       scrollable: _plannerScrollable);
