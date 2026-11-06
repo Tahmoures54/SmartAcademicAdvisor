@@ -42,6 +42,37 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
 
+      - name: Create temporary CI-only Android signing key
+        run: |
+          set -euo pipefail
+          mkdir -p android/app
+          keytool -genkeypair -noprompt -keystore "$GITHUB_WORKSPACE/android/app/release-keystore.jks" \
+            -storepass ci-only-password -keypass ci-only-password -alias ci-validation \
+            -keyalg RSA -keysize 2048 -validity 2 -dname "CN=CI Validation"
+          echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/app/release-keystore.jks" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=ci-only-password" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=ci-validation" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=ci-only-password" >> "$GITHUB_ENV"
+
+      - name: Build signed release using temporary CI key
+        env:
+          ADVISOR_API_BASE_URL: ${{ vars.ADVISOR_API_BASE_URL }}
+        run: |
+          flutter build apk --release \
+            --dart-define=ADVISOR_API_BASE_URL="$ADVISOR_API_BASE_URL"
+
+      - name: Verify temporary release APK signature
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Remove temporary CI signing material
+        if: always()
+        run: rm -f android/app/release-keystore.jks
+
   backend-tests:
     runs-on: ubuntu-latest
     defaults:
