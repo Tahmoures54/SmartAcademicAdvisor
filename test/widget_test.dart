@@ -40,7 +40,7 @@ Future<void> _scrollPlannerUntilVisible(WidgetTester tester, Finder target) asyn
   // ListView lazily builds off-screen children, so ensureVisible cannot locate
   // them until the list has been dragged far enough to build the target.
   for (var attempt = 0; attempt < 20 && target.evaluate().isEmpty; attempt++) {
-    await tester.drag(find.byType(ListView).last, const Offset(0, -350));
+    await tester.drag(find.byKey(const Key('study-planner-scroll')), const Offset(0, -350));
     await tester.pumpAndSettle();
   }
 }
