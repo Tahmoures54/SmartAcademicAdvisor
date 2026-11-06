@@ -131,8 +131,7 @@ void main() {
     await tester.tap(find.text('ساخت برنامهٔ مرور'));
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'));
     expect(find.text('مرور خلاصه‌ها و نکته‌های ریاضی'), findsOneWidget);
     expect(find.text('حل چند سؤال تمرینی از ریاضی'), findsOneWidget);
     final taskPrefs = await SharedPreferences.getInstance();
@@ -143,8 +142,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('ثبت جلسهٔ مطالعه'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('ثبت جلسهٔ مطالعه'));
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'ثبت جلسهٔ مطالعه').last);
     await tester.tap(find.widgetWithText(FilledButton, 'ثبت جلسهٔ مطالعه').last);
     await tester.pumpAndSettle();
@@ -165,15 +163,12 @@ void main() {
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('برنامهٔ هفت روز آینده'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('برنامهٔ هفت روز آینده'));
     expect(find.text('برنامهٔ هفت روز آینده'), findsOneWidget);
     expect(find.text('دوشنبه'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('هنوز کاری ثبت نشده است'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('هنوز کاری ثبت نشده است'));
     expect(find.text('هنوز کاری ثبت نشده است'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('مثلاً: مرور فصل دوم علوم'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('مثلاً: مرور فصل دوم علوم'));
     await tester.enterText(find.byType(EditableText).first, 'مرور فصل دوم علوم');
     await tester.tap(find.text('افزودن به برنامه'));
     await tester.pumpAndSettle();
@@ -190,17 +185,13 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('گزارش هفتگی پیشرفت'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('گزارش هفتگی پیشرفت'));
     expect(find.text('گزارش هفتگی پیشرفت'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('مرور فاصله‌دار و نقاط ضعف'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('مرور فاصله‌دار و نقاط ضعف'));
     expect(find.text('مرور فاصله‌دار و نقاط ضعف'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('نقشهٔ تسلط و اولویت یادگیری'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('نقشهٔ تسلط و اولویت یادگیری'));
     expect(find.text('نقشهٔ تسلط و اولویت یادگیری'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('ساخت برنامهٔ پیشنهادی'));
     expect(find.text('ساخت برنامهٔ پیشنهادی'), findsOneWidget);
     expect(find.text('مربی آموزشی قدم‌به‌قدم'), findsOneWidget);
   });
@@ -209,8 +200,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('افزودن سؤال برای مرور'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('افزودن سؤال برای مرور'));
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.tap(find.widgetWithText(OutlinedButton, 'افزودن سؤال برای مرور').last);
     await tester.pumpAndSettle();
@@ -239,21 +229,24 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('ساخت برنامهٔ پیشنهادی'), 350,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('ساخت برنامهٔ پیشنهادی'));
     final adaptivePlanButton = find.widgetWithText(FilledButton, 'ساخت برنامهٔ پیشنهادی').last;
-    await tester.scrollUntilVisible(adaptivePlanButton, 350, scrollable: _plannerScrollable);
+    await tester.ensureVisible(adaptivePlanButton);
     await tester.ensureVisible(adaptivePlanButton);
     await tester.pumpAndSettle();
     await tester.tap(adaptivePlanButton);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'ساخت برنامه').last);
-    await tester.tap(find.widgetWithText(FilledButton, 'ساخت برنامه').last);
+    final confirmPlanButton = find.descendant(
+      of: find.byType(AlertDialog).last,
+      matching: find.widgetWithText(FilledButton, 'ساخت برنامه'),
+    );
+    expect(confirmPlanButton, findsOneWidget);
+    await tester.tap(confirmPlanButton);
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const Key('study-planner-scroll')), findsOneWidget);
     expect(find.text('برنامهٔ درسی من'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('مرور فعال'), 300,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.textContaining('مرور فعال'));
     expect(find.textContaining('مرور فعال'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('study_tasks'), isNotEmpty);
@@ -264,8 +257,7 @@ void main() {
     await _pumpAdvisor(tester);
     await tester.tap(find.text('برنامه من').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('مربی آموزشی قدم‌به‌قدم'), 350,
-      scrollable: _plannerScrollable);
+    await tester.ensureVisible(find.text('مربی آموزشی قدم‌به‌قدم'));
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
     await tester.tap(find.widgetWithText(OutlinedButton, 'مربی آموزشی قدم‌به‌قدم').last);
     await tester.pumpAndSettle();
