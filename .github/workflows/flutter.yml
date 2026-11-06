@@ -54,3 +54,6 @@ jobs:
         run: pip install -r requirements.txt
       - name: Test backend API
         run: python -m unittest -v test_app.py
+      - name: Build backend Docker image
+        working-directory: .
+        run: docker build --file backend/Dockerfile --tag smart-academic-advisor-api:${{ github.sha }} .
