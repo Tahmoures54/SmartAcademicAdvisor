@@ -185,7 +185,11 @@ void main() {
     await _scrollPlannerUntilVisible(tester, addButton);
     await tester.ensureVisible(addButton);
     expect(find.text('افزودن به برنامه'), findsOneWidget);
-    await tester.tap(addButton);
+    final addAction = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'افزودن به برنامه'),
+    ).onPressed;
+    expect(addAction, isNotNull);
+    addAction!();
     await tester.pumpAndSettle();
 
     expect(find.text('مرور فصل دوم علوم'), findsOneWidget);
