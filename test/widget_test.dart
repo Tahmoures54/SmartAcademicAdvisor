@@ -11,6 +11,12 @@ Finder get _assessmentScrollable => find.descendant(
 ).first;
 
 Future<void> _pumpAdvisor(WidgetTester tester) async {
+  // Exercise the app at a realistic phone viewport rather than the test
+  // binding's wide desktop-like default size.
+  tester.view.physicalSize = const Size(430, 932);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(const AcademicAdvisorApp());
   await tester.pumpAndSettle();
   // Allow the asynchronous SharedPreferences load to finish before interacting.
