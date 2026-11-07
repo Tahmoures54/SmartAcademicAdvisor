@@ -32,7 +32,6 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
-from typing import Deque, Dict, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -45,7 +44,7 @@ def _env_str(key: str, default: str = "") -> str:
     return os.getenv(key, default).strip()
 
 
-def _env_int(key: str, default: int, minimum: int = 0, maximum: Optional[int] = None) -> int:
+def _env_int(key: str, default: int, minimum: int = 0, maximum: int | None = None) -> int:
     try:
         value = int(os.getenv(key, str(default)))
     except (TypeError, ValueError):
@@ -90,7 +89,7 @@ app.config["MAX_CONTENT_LENGTH"] = _env_int("MAX_BODY_BYTES", 16 * 1024, minimum
 
 
 # ── Rate limiter (per-process, best-effort) ──────────────────────────
-_rate_buckets: Dict[str, Deque[float]] = defaultdict(deque)
+_rate_buckets: dict[str, deque[float]] = defaultdict(deque)
 _rate_lock = threading.Lock()
 _MAX_BUCKET_KEYS = 10_000
 
@@ -142,7 +141,7 @@ def _chat_completions_url(base_url: str) -> str:
     return value + "/chat/completions"
 
 
-def _error(message: str, status: int, headers: Optional[Dict[str, str]] = None):
+def _error(message: str, status: int, headers: dict[str, str] | None = None):
     response = jsonify({"error": message})
     if headers:
         for header_name, header_value in headers.items():
@@ -159,7 +158,7 @@ def _client_ip() -> str:
     return (request.remote_addr or "unknown")[:80]
 
 
-def _upstream_headers(api_key: str) -> Dict[str, str]:
+def _upstream_headers(api_key: str) -> dict[str, str]:
     return {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -172,10 +171,10 @@ def _upstream_headers(api_key: str) -> Dict[str, str]:
 
 
 def _call_upstream(
-    url: str, body: bytes, headers: Dict[str, str], timeout: int, retries: int
+    url: str, body: bytes, headers: dict[str, str], timeout: int, retries: int
 ):
     """POST to the upstream endpoint, retrying transient failures only."""
-    last_exc: Optional[BaseException] = None
+    last_exc: BaseException | None = None
     for attempt in range(retries + 1):
         try:
             outbound = Request(url, data=body, headers=headers, method="POST")
