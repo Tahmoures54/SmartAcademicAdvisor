@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -101,7 +102,11 @@ class AdvisorApi {
 
   Uri _completionUri(String baseUrl) {
     final uri = Uri.parse(baseUrl.trim());
-    if (uri.scheme != 'https' || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
+    if (uri.scheme != 'https' ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
       throw const AdvisorException(
         'Provider URL must be a valid HTTPS address.',
         kind: AdvisorErrorKind.misconfigured,
@@ -111,7 +116,7 @@ class AdvisorApi {
     if (!path.endsWith('/chat/completions')) {
       path = '$path/chat/completions';
     }
-    return uri.replace(path: path, query: null, fragment: null);
+    return uri.replace(path: path);
   }
 
   Future<http.Response> _sendWithRetry(
