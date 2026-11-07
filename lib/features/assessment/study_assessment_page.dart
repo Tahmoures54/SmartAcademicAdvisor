@@ -12,7 +12,7 @@ class StudyAssessmentPage extends StatefulWidget {
 /// One question with its answer options, ordered from weakest (index 0) to
 /// strongest (last index). Keeping text + options together prevents the two
 /// parallel lists from drifting out of sync.
-abstract final class _AssessmentQuestion {
+final class _AssessmentQuestion {
   const _AssessmentQuestion({required this.text, required this.options});
 
   final String text;
@@ -199,7 +199,6 @@ class _StudyAssessmentPageState extends State<StudyAssessmentPage> {
                       dense: true,
                       value: option,
                       title: Text(q.options[option]),
-                      semanticLabel: q.options[option],
                     ),
                 ],
               ),
