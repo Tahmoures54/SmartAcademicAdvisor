@@ -51,14 +51,6 @@ class AdvisorHomeScreen extends StatefulWidget {
 }
 
 class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
-  static const _tabLabels = <String>[
-    'خانه',
-    'برنامه من',
-    'آزمون‌ها',
-    'یادداشت‌ها',
-    'پروفایل',
-  ];
-
   final _questionController = TextEditingController();
   final _notesController = TextEditingController();
   final _newTaskController = TextEditingController();
@@ -271,7 +263,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         goal: _goal,
         question: question,
       );
-      if (ai != null && ai.trim().isNotEmpty) {
+      if (ai.trim().isNotEmpty) {
         result = 'پاسخ مربی هوش مصنوعی\n\n$ai\n\n'
             'اگر پاسخ مربوط به تصمیم مهم تحصیلی یا انتخاب رشته است، اطلاعات را '
             'با منابع معتبر و خانواده نیز بررسی کن.';
