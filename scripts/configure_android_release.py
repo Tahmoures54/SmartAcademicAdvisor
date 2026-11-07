@@ -80,8 +80,8 @@ def main() -> None:
         )
     else:
         manifest_text = re.sub(
-            r'(<application\\b)',
-            r'\\1 android:allowBackup="false"',
+            r'(<application\b)',
+            r'\1 android:allowBackup="false"',
             manifest_text,
             count=1,
         )
