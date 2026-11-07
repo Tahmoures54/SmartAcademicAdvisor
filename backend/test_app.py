@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
-from app import app, _chat_completions_url, _rate_buckets
+from app import _chat_completions_url, _rate_buckets, app
 
 
 class AdviceApiTests(unittest.TestCase):
@@ -65,6 +65,34 @@ class AdviceApiTests(unittest.TestCase):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"status": "ok"})
+
+    def test_health_response_has_no_store_security_headers(self):
+        response = self.client.get("/health")
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+
+    def test_readiness_requires_server_provider_configuration(self):
+        response = self.client.get("/ready")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json(), {"status": "not_ready"})
+
+    def test_readiness_is_true_with_valid_https_provider_configuration(self):
+        self._configure_provider()
+        response = self.client.get("/ready")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"status": "ready"})
+
+    def test_rejects_non_https_provider_url(self):
+        self._configure_provider()
+        os.environ["AI_BASE_URL"] = "http://example.invalid/v1"
+        response = self.client.post("/api/advice", json=self.payload())
+        self.assertEqual(response.status_code, 503)
+
+    def test_rejects_non_string_stage_without_server_error(self):
+        payload = self.payload()
+        payload["stage"] = ["متوسطه اول"]
+        response = self.client.post("/api/advice", json=payload)
+        self.assertEqual(response.status_code, 400)
 
     # ── Validation ───────────────────────────────────────────────
     def test_rejects_invalid_stage(self):
@@ -199,7 +227,7 @@ class AdviceApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         # Persian must be raw UTF-8, not \u06XX escapes.
         self.assertNotIn(b"\\u06", response.data)
-        self.assertIn("سلام دنیا".encode("utf-8"), response.data)
+        self.assertIn("سلام دنیا".encode(), response.data)
 
     @patch("app.urlopen")
     def test_truncates_oversized_answer(self, mocked_urlopen):
