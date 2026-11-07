@@ -34,7 +34,7 @@ The app should be a practical, Persian-first study companion rather than a gener
 
 ## Do not build yet
 
-- Social leaderboards, friend leagues and competitive rankings: they add accounts, moderation, backend and privacy costs before the core study loop is proven.
+- Social leaderboards, friend leagues and competitive rankings: they add accounts, moderation, server infrastructure and privacy costs before the core study loop is proven.
 - Automated admission probability based on unsupported or stale data.
 - A personality/aptitude test marketed as a scientific diagnosis.
 - Cloud accounts/sync until the privacy policy, server operations and deletion flow are ready.
@@ -42,6 +42,6 @@ The app should be a practical, Persian-first study companion rather than a gener
 ## Current limitations
 
 - Exam records, scores, notes and tasks are stored locally on the device; they do not sync across devices.
-- The AI backend is not publicly deployed yet. Without a configured backend URL and provider key, guidance uses the offline rules.
+- AI requests are sent directly from the phone to the provider selected by the user. Without a user-supplied API key, guidance uses the offline rules.
 - The focus timer does not yet issue notifications when the app is in the background.
 - A passing CI run and successful debug APK build are required before treating the current code as verified; a debug APK is not a signed store release.
