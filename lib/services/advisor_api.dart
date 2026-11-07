@@ -19,14 +19,12 @@ enum AdvisorErrorKind {
 
 class AdvisorException extends FormatException {
   const AdvisorException(
-    this.message, {
+    super.message, {
     this.kind = AdvisorErrorKind.serverError,
     this.statusCode,
     this.retryAfter,
   });
 
-  @override
-  final String message;
   final AdvisorErrorKind kind;
   final int? statusCode;
   final Duration? retryAfter;
