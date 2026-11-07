@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/ai_settings_store.dart';
+import '../../services/ai_settings_store.dart';
 
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key});
@@ -216,7 +216,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   ),
                 const SizedBox(height: 12),
                 const Text(
-                  'کلید در حافظه امن اندروید نگهداری می‌شود و به برنامه دیگری ارسال نمی‌شود؛ '
+                  'کلید در حافظه امن اندروید نگهداری می‌شود و هنگام درخواست فقط در هدر احراز هویت به ارائه‌دهنده انتخابی ارسال می‌شود؛ '
                   'اما در گوشی روت‌شده یا آلوده، هیچ روش ذخیره‌سازی محلی مصونیت کامل ندارد. '
                   'هزینه درخواست‌ها طبق تعرفه ارائه‌دهنده و حساب خودتان محاسبه می‌شود.',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
