@@ -111,7 +111,16 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       ),
     );
     if (confirmed != true) return;
-    await _store.clear();
+    try {
+      await _store.clear();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _message = 'حذف کلید از حافظه امن انجام نشد.';
+        _messageIsError = true;
+      });
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _keyController.clear();
