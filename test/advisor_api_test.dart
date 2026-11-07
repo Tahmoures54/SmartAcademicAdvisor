@@ -82,8 +82,8 @@ void main() {
     final api = AdvisorApi(client: client);
     addTearDown(api.dispose);
 
-    expect(
-      () => api.requestAnswer(
+    await expectLater(
+      api.requestAnswer(
         settings: const AiProviderSettings(
           apiKey: 'test',
           baseUrl: 'http://insecure.example',
@@ -150,7 +150,7 @@ void main() {
       client: MockClient((_) async => http.Response('{}', 200)),
     );
     addTearDown(api.dispose);
-    for (final question in ['', 'x' * 6001]) {
+    for (final question in ['', List<String>.filled(6001, 'x').join()]) {
       await expectLater(
         api.requestAnswer(
           settings: settings,
