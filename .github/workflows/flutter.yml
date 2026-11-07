@@ -58,7 +58,7 @@ jobs:
             exit 1
           fi
           forbidden_define="--dart-define=AI_"API_KEY
-          if grep -R -n "$forbidden_define" .github/workflows; then
+          if grep -R -n -- "$forbidden_define" .github/workflows; then
             echo "::error::Provider API keys must never be injected into APK builds."
             exit 1
           fi
