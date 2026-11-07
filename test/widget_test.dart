@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show EditableText, Scrollable;
+import 'package:flutter/material.dart' show EditableText, Scrollable, Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_academic_advisor/main.dart';
@@ -359,30 +359,30 @@ void main() {
       // Original test referenced exam-generated review tasks; the button
       // does not exist in the current main.dart.
     },
-    skip: 'TODO(feature): exam → review plan action not implemented',
+    skip: true,
   );
 
   testWidgets(
     'study session logging records minutes and confidence',
     (tester) async {},
-    skip: 'TODO(feature): study session logging UI not implemented',
+    skip: true,
   );
 
   testWidgets(
     'weekly plan, spaced repetition, mastery map, and adaptive plan',
     (tester) async {},
-    skip: 'TODO(feature): planner extended UI not implemented',
+    skip: true,
   );
 
   testWidgets(
     'review card creation and spaced review dialog',
     (tester) async {},
-    skip: 'TODO(feature): review card creation UI not implemented',
+    skip: true,
   );
 
   testWidgets(
     'step tutor walks the learner through three stages offline',
     (tester) async {},
-    skip: 'TODO(feature): step tutor UI not implemented',
+    skip: true,
   );
 }

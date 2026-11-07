@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 
 import 'config/app_config.dart';
 import 'features/assessment/study_assessment_page.dart';
+import 'features/settings/ai_settings_page.dart';
 import 'models/exam.dart';
 import 'models/planner_snapshot.dart';
 import 'models/review_card.dart';
 import 'models/study_session.dart';
 import 'services/advisor_api.dart';
+import 'services/ai_settings_store.dart';
 import 'services/local_store.dart';
 import 'services/offline_advice.dart';
 
@@ -49,19 +51,12 @@ class AdvisorHomeScreen extends StatefulWidget {
 }
 
 class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
-  static const _tabLabels = <String>[
-    'خانه',
-    'برنامه من',
-    'آزمون‌ها',
-    'یادداشت‌ها',
-    'پروفایل',
-  ];
-
   final _questionController = TextEditingController();
   final _notesController = TextEditingController();
   final _newTaskController = TextEditingController();
   final _store = LocalStore();
   final _advisorApi = AdvisorApi();
+  final _aiSettingsStore = AiSettingsStore();
 
   // ── Scalar state ────────────────────────────────────────────────
   String _stage = AcademicStages.defaultStage;
@@ -235,24 +230,40 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       question: question,
     );
 
-    if (!AppConfig.hasAnyAiChannel) {
-      setState(() => _answer = fallback);
-      return;
-    }
-
     setState(() {
       _askingAdvisor = true;
       _answer = null;
     });
 
+    AiProviderSettings settings;
+    try {
+      settings = await _aiSettingsStore.load();
+    } catch (error) {
+      debugPrint('AI settings unavailable: $error');
+      if (!mounted) return;
+      setState(() {
+        _askingAdvisor = false;
+        _answer = '$fallback\n\nحافظه امن تنظیمات در دسترس نیست؛ تنظیمات دستگاه را بررسی کنید.';
+      });
+      return;
+    }
+    if (!settings.isConfigured) {
+      setState(() {
+        _askingAdvisor = false;
+        _answer = '$fallback\n\nبرای دریافت پاسخ هوش مصنوعی، ابتدا کلید شخصی خود را در بخش پروفایل ← تنظیمات هوش مصنوعی وارد کنید.';
+      });
+      return;
+    }
+
     String result;
     try {
       final ai = await _advisorApi.requestAnswer(
+        settings: settings,
         stage: _stage,
         goal: _goal,
         question: question,
       );
-      if (ai != null && ai.trim().isNotEmpty) {
+      if (ai.trim().isNotEmpty) {
         result = 'پاسخ مربی هوش مصنوعی\n\n$ai\n\n'
             'اگر پاسخ مربوط به تصمیم مهم تحصیلی یا انتخاب رشته است، اطلاعات را '
             'با منابع معتبر و خانواده نیز بررسی کن.';
@@ -266,7 +277,7 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
         AdvisorErrorKind.network =>
           'اتصال به سرویس برقرار نشد؛ اتصال اینترنت را بررسی کن.',
         AdvisorErrorKind.misconfigured =>
-          'سرویس هوش مصنوعی در این نسخه تنظیم نشده است.',
+          'تنظیمات سرویس معتبر نیست؛ نشانی HTTPS، نام مدل و کلید را بررسی کنید.',
         AdvisorErrorKind.unauthorized => 'کلید سرویس معتبر نیست.',
         AdvisorErrorKind.badRequest =>
           'درخواست معتبر نیست؛ متن سؤال یا انتخاب‌های مقطع/موضوع را بررسی کن.',
@@ -743,8 +754,18 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
         const SizedBox(height: 12),
         Text('مقطع فعلی: $_stage'),
-        Text('موضوع منتخب: $_goal'),
+                Text('موضوع منتخب: $_goal'),
         const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AiSettingsPage(),
+            ),
+          ),
+          icon: const Icon(Icons.smart_toy_outlined),
+          label: const Text('تنظیمات هوش مصنوعی'),
+        ),
+        const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _clearSavedData,
           icon: const Icon(Icons.delete_forever_outlined),

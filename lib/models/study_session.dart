@@ -13,11 +13,10 @@ class StudySession {
     required String subject,
     required int minutes,
     required int confidence,
-    required DateTime date,
+    required this.date,
   })  : subject = subject.trim(),
         minutes = _clampInt(minutes, 0, maxMinutesPerDay),
-        confidence = _clampInt(confidence, minConfidence, maxConfidence),
-        date = date;
+        confidence = _clampInt(confidence, minConfidence, maxConfidence);
 
   final String subject;
   final int minutes;
