@@ -1,4 +1,4 @@
-name: Flutter checks
+name: Flutter & Backend CI
 
 on:
   push:
@@ -10,51 +10,178 @@ on:
 permissions:
   contents: read
 
+# لغو اجراهای قبلی روی همان ref تا منابع هدر نروند
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_CHANNEL: stable
+  # برای reproducible build می‌توانید مقدار نسخه را ثابت کنید، مثلاً: '3.27.4'
+  # FLUTTER_VERSION: '3.27.4'
+  JAVA_VERSION: '17'
+  PYTHON_VERSION: '3.12'
+
 jobs:
-  analyze-and-test:
+  # ─────────────────────────────────────────────────────────────
+  # 1) کیفیت کد Flutter: format + analyze + test
+  # ─────────────────────────────────────────────────────────────
+  flutter-quality:
+    name: Flutter · Format, Analyze, Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
         with:
-          channel: stable
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          # flutter-version: ${{ env.FLUTTER_VERSION }}   # در صورت فعال‌سازی نسخه ثابت
           cache: true
-      - name: Generate Android platform scaffold
-        run: flutter create --platforms=android .
+
+      - name: Flutter doctor (debug info)
+        run: flutter doctor -v
+
+      - name: Ensure Android platform scaffold
+        run: |
+          if [ ! -d "android" ]; then
+            echo "::notice::android/ missing — generating Flutter Android scaffold"
+            flutter create --platforms=android .
+          else
+            echo "::notice::android/ already present — skipping scaffold generation"
+          fi
+
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Verify formatting (lib/)
+        run: dart format --output=none --set-exit-if-changed lib
+
+      - name: Verify formatting (test/ — if present)
+        run: |
+          if [ -d "test" ]; then
+            dart format --output=none --set-exit-if-changed test
+          else
+            echo "::notice::test/ not found — skipping format check"
+          fi
+
       - name: Analyze
-        run: flutter analyze
+        # برای سخت‌گیری بیشتر: --fatal-warnings --fatal-infos را اضافه کنید
+        run: flutter analyze --no-pub
+
       - name: Test
-        run: flutter test
-      - name: Build debug APK with optional AI provider credentials
+        run: flutter test --no-pub --reporter expanded
+
+  # ─────────────────────────────────────────────────────────────
+  # 2) بیلد APK دیباگ (فقط پس از موفقیت کیفیت کد)
+  # ─────────────────────────────────────────────────────────────
+  flutter-build-android:
+    name: Flutter · Build debug APK
+    runs-on: ubuntu-latest
+    needs: flutter-quality
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Ensure Android platform scaffold
+        run: |
+          if [ ! -d "android" ]; then
+            flutter create --platforms=android .
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build debug APK (with optional AI credentials)
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: ${{ vars.AI_BASE_URL }}
           AI_MODEL: ${{ vars.AI_MODEL }}
         run: |
-          flutter build apk --debug \
-            --dart-define=AI_API_KEY="$AI_API_KEY" \
+          flutter build apk --debug --no-pub \
+            --dart-define=AI_API_KEY="${AI_API_KEY:-}" \
             --dart-define=AI_BASE_URL="${AI_BASE_URL:-https://api.deepseek.com}" \
             --dart-define=AI_MODEL="${AI_MODEL:-deepseek-chat}"
-      - name: Upload debug APK
+
+      - name: Upload debug APK (push / manual only)
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: smart-academic-advisor-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
 
+  # ─────────────────────────────────────────────────────────────
+  # 3) بک‌اند: lint + format-check + compile + test with coverage
+  # ─────────────────────────────────────────────────────────────
   backend-tests:
+    name: Backend · Lint & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
       - name: Install backend dependencies
-        run: pip install -r requirements.txt
-      - name: Test backend API
-        run: python -m unittest -v test_app.py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff coverage
+
+      - name: Compile check
+        run: python -m compileall -q .
+
+      - name: Lint (Ruff)
+        run: ruff check .
+
+      - name: Format check (Ruff — advisory)
+        # در اولین اجرا ممکن است هشدار بدهد؛ یک‌بار `ruff format .` را لوکال اجرا و commit کنید.
+        continue-on-error: true
+        run: ruff format --check .
+
+      - name: Test with coverage
+        run: |
+          coverage run -m unittest -v test_app.py
+          coverage report --skip-covered
