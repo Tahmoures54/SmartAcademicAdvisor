@@ -1,16 +1,12 @@
 # Educational advice API
 
-Optional server-side proxy in front of any OpenAI-compatible chat-completions
-provider. It keeps the provider key off the client device: the Flutter app can
-also be built with a key baked in via GitHub Actions (for local testing only),
-but any key embedded in an APK is extractable. For public releases, route all
-traffic through this proxy.
+The Flask service is the only component that holds the AI provider credential. The Flutter client never receives or embeds the provider key. AI advice is available only through this HTTPS backend; without a configured backend, the app uses offline guidance.
 
 - FastAPI-free, single-file Flask app (`app.py`)
 - All configuration via environment variables (no secrets in source)
 - Per-IP rate limiting, request validation, security headers, CORS, optional
   retries with backoff, and structured request tracing (`X-Request-ID`)
-- 36 unit tests included (`test_app.py`)
+- Regression tests for validation, readiness, provider failures, and security boundaries (`test_app.py`)
 
 ## Contents
 
@@ -40,9 +36,8 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # 3. Configuration (never commit .env)
-cp ../.env.example .env            # if you keep .env.example at repo root
-# else create backend/.env with the keys listed in "Configuration" below
-# then open .env and set AI_API_KEY to a real provider key
+cp .env.example .env
+# edit .env and set AI_API_KEY to a real provider key; never commit it
 
 # 4. Export the variables (POSIX shells)
 set -a && source .env && set +a
