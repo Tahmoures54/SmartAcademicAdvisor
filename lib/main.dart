@@ -238,26 +238,30 @@ class _AdvisorHomeScreenState extends State<AdvisorHomeScreen> {
       question: question,
     );
 
+    setState(() {
+      _askingAdvisor = true;
+      _answer = null;
+    });
+
     AiProviderSettings settings;
     try {
       settings = await _aiSettingsStore.load();
     } catch (error) {
       debugPrint('AI settings unavailable: $error');
       if (!mounted) return;
-      setState(() => _answer =
-          '$fallback\n\nحافظه امن تنظیمات در دسترس نیست؛ تنظیمات دستگاه را بررسی کنید.');
+      setState(() {
+        _askingAdvisor = false;
+        _answer = '$fallback\n\nحافظه امن تنظیمات در دسترس نیست؛ تنظیمات دستگاه را بررسی کنید.';
+      });
       return;
     }
     if (!settings.isConfigured) {
-      setState(() => _answer =
-          '$fallback\n\nبرای دریافت پاسخ هوش مصنوعی، ابتدا کلید شخصی خود را در بخش پروفایل ← تنظیمات هوش مصنوعی وارد کنید.');
+      setState(() {
+        _askingAdvisor = false;
+        _answer = '$fallback\n\nبرای دریافت پاسخ هوش مصنوعی، ابتدا کلید شخصی خود را در بخش پروفایل ← تنظیمات هوش مصنوعی وارد کنید.';
+      });
       return;
     }
-
-    setState(() {
-      _askingAdvisor = true;
-      _answer = null;
-    });
 
     String result;
     try {
