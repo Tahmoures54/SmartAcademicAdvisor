@@ -4,50 +4,21 @@ import 'dart:ui' show Color;
 ///
 /// All values come from `--dart-define=KEY=value` at build time. Never commit
 /// a real key. For public releases prefer `ADVISOR_API_BASE_URL` (proxy)
-/// over `AI_API_KEY` (direct key embedded in the APK is extractable).
+/// and never embeds provider credentials in the application.
 abstract final class AppConfig {
   // ── Raw compile-time values ─────────────────────────────────────────
   static const String _rawAdvisorApiBaseUrl =
       String.fromEnvironment('ADVISOR_API_BASE_URL');
-  static const String _rawAiApiKey = String.fromEnvironment('AI_API_KEY');
-  static const String _rawAiBaseUrl = String.fromEnvironment(
-    'AI_BASE_URL',
-    defaultValue: 'https://api.deepseek.com',
-  );
-  static const String _rawAiModel = String.fromEnvironment(
-    'AI_MODEL',
-    defaultValue: 'deepseek-chat',
-  );
-  static const int _rawAiTimeoutSeconds =
-      int.fromEnvironment('AI_TIMEOUT_SECONDS', defaultValue: 30);
-  static const int _rawAiMaxRetries =
-      int.fromEnvironment('AI_MAX_RETRIES', defaultValue: 0);
-  static const int _rawAiMaxTokens =
-      int.fromEnvironment('AI_MAX_TOKENS', defaultValue: 700);
-
   // ── Safety bounds ───────────────────────────────────────────────────
   static const int _minTimeoutSeconds = 1;
   static const int _maxTimeoutSeconds = 300;
   static const int _maxRetriesCap = 5;
-  static const int _minTokens = 1;
-  static const int _maxTokens = 8000;
 
   // ── Public, normalized values ───────────────────────────────────────
   /// Advisor proxy base URL. Trailing slashes stripped. Empty when the app
   /// was built without `ADVISOR_API_BASE_URL`.
   static final String advisorApiBaseUrl =
       _stripTrailingSlashes(_rawAdvisorApiBaseUrl);
-
-  /// Trimmed direct API key. Empty when built without `AI_API_KEY`.
-  static final String aiApiKey = _rawAiApiKey.trim();
-
-  /// Provider base URL, normalized, with a safe fallback.
-  static final String aiBaseUrl =
-      _normalizeOrDefault(_rawAiBaseUrl, 'https://api.deepseek.com');
-
-  /// Model name, trimmed, with a safe fallback.
-  static final String aiModel =
-      _normalizeOrDefault(_rawAiModel, 'deepseek-chat');
 
   /// Upstream timeout in seconds, clamped to [1, 300].
   static final int aiTimeoutSeconds =
@@ -58,37 +29,23 @@ abstract final class AppConfig {
       _clampInt(_rawAiMaxRetries, 0, _maxRetriesCap);
 
   /// Max completion tokens, clamped to [1, 8000].
-  static final int aiMaxTokens =
-      _clampInt(_rawAiMaxTokens, _minTokens, _maxTokens);
-
   /// Ready-to-use timeout for `http` calls.
   static final Duration aiTimeout = Duration(seconds: aiTimeoutSeconds);
 
   // ── Feature flags ───────────────────────────────────────────────────
-  static bool get hasDirectAiKey => aiApiKey.isNotEmpty;
-
   static bool get hasAdvisorBackend => advisorApiBaseUrl.isNotEmpty;
 
-  /// True only when the advisor URL also starts with http(s).
+  /// True only when the configured backend URL uses HTTP or HTTPS.
   static bool get hasValidAdvisorBackend =>
       hasAdvisorBackend && _isHttpUrl(advisorApiBaseUrl);
 
-  /// True only when key + URL + model are all present.
-  static bool get hasDirectAiConfig =>
-      hasDirectAiKey && aiBaseUrl.isNotEmpty && aiModel.isNotEmpty;
+  /// AI is available only through the server-side proxy; otherwise use offline advice.
+  static bool get hasAnyAiChannel => hasValidAdvisorBackend;
 
-  /// Preferred path: valid proxy first, then direct key, then offline advice.
-  static bool get hasAnyAiChannel =>
-      hasValidAdvisorBackend || hasDirectAiConfig;
-
-  /// Diagnostics-safe summary for startup logs. Never prints the key.
   static String describe() => 'AppConfig('
       'advisor=${hasValidAdvisorBackend ? advisorApiBaseUrl : "<none>"}, '
-      'directKey=${hasDirectAiKey ? "<set>" : "<unset>"}, '
-      'model=$aiModel, '
       'timeout=${aiTimeoutSeconds}s, '
-      'retries=$aiMaxRetries, '
-      'maxTokens=$aiMaxTokens)';
+      'retries=$aiMaxRetries)';
 
   // ── Helpers ─────────────────────────────────────────────────────────
   static String _stripTrailingSlashes(String value) {
@@ -97,11 +54,6 @@ abstract final class AppConfig {
       v = v.substring(0, v.length - 1);
     }
     return v;
-  }
-
-  static String _normalizeOrDefault(String raw, String fallback) {
-    final v = _stripTrailingSlashes(raw);
-    return v.isEmpty ? fallback : v;
   }
 
   static bool _isHttpUrl(String value) =>
