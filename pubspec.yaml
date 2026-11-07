@@ -1,24 +1,58 @@
 name: smart_academic_advisor
 description: مشاور تحصیلی همراه دانش‌آموزان از ابتدایی تا دانشگاه و پس از فارغ‌التحصیلی
 publish_to: 'none'
-version: 0.1.0+1
+
+# Bump the build number on every store/release build.
+version: 0.2.0+2
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
-  flutter: '>=3.24.0'
+  # `RadioGroup<int>` requires Flutter 3.32+; Dart 3.6 ships with it.
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.32.0'
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # Material/Cupertino localization delegates (Persian, RTL, Jalali calendar).
   flutter_localizations:
     sdk: flutter
+
+  # Icons shipped with Flutter; required by any Cupertino* usage.
+  cupertino_icons: ^1.0.8
+
+  # Persian date, number, and currency formatting (fa locale).
+  intl: ^0.20.0
+
+  # Local persistence and HTTP.
   shared_preferences: ^2.5.3
   http: ^1.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+
+  # Stricter, newer lint set (supersedes flutter_lints 4.x).
+  flutter_lints: ^5.0.0
+
+  # Integration-style tests for flows that need a real engine
+  # (date pickers, OS dialogs). Uncomment when you add `integration_test/`.
+  # integration_test:
+  #   sdk: flutter
 
 flutter:
   uses-material-design: true
+
+  # Uncomment and populate once the app ships static assets.
+  # assets:
+  #   - assets/images/
+  #   - assets/fonts/
+
+  # Uncomment to ship a custom Persian font (e.g. Vazirmatn) bundled with
+  # the app instead of relying on the platform font.
+  # fonts:
+  #   - family: Vazirmatn
+  #     fonts:
+  #       - asset: assets/fonts/Vazirmatn-Regular.ttf
+  #       - asset: assets/fonts/Vazirmatn-Bold.ttf
+  #         weight: 700
