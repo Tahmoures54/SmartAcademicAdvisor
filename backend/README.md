@@ -1,23 +1,53 @@
 # Educational advice API
 
-This is an optional server-side proxy for an OpenAI-compatible chat-completions API. The Flutter app can also be built with an AI provider key through GitHub Actions for testing, but any key embedded in an APK is extractable. Prefer this server-side proxy for public production releases.
+Optional server-side proxy in front of any OpenAI-compatible chat-completions
+provider. It keeps the provider key off the client device: the Flutter app can
+also be built with a key baked in via GitHub Actions (for local testing only),
+but any key embedded in an APK is extractable. For public releases, route all
+traffic through this proxy.
 
-## Run locally
+- FastAPI-free, single-file Flask app (`app.py`)
+- All configuration via environment variables (no secrets in source)
+- Per-IP rate limiting, request validation, security headers, CORS, optional
+  retries with backoff, and structured request tracing (`X-Request-ID`)
+- 36 unit tests included (`test_app.py`)
 
-1. Use Python 3.11 or newer.
-2. Install dependencies: `pip install -r backend/requirements.txt`
-3. Set `AI_API_KEY` in your shell or hosting environment. Never commit a real key.
-4. Configure `AI_BASE_URL` and `AI_MODEL` for the chosen compatible provider.
-5. Start from this directory with `python app.py`, or use `gunicorn app:app --bind 0.0.0.0:$PORT`.
+## Contents
 
-The `/health` endpoint is a basic health check. Send JSON to `POST /api/advice` with `stage`, `goal`, and `question`.
+- [Quick start](#quick-start)
+- [API reference](#api-reference)
+- [Configuration](#configuration)
+- [Running tests](#running-tests)
+- [Production checklist](#production-checklist)
+- [Deployment](#deployment)
+- [Scaling the rate limiter](#scaling-the-rate-limiter)
+- [Flutter integration](#flutter-integration)
+- [Troubleshooting](#troubleshooting)
+- [Privacy and child-safety](#privacy-and-child-safety)
 
-## Before production
+## Quick start
 
-- Set provider spending limits and alerts. The default in-process throttle is 10 requests/minute and 50/day per IP; it is only a basic safeguard, resets on restart, and is not shared across multiple workers.
-- Configure HTTPS, trusted reverse-proxy handling, persistent/shared rate limiting, monitoring, and appropriate retention policies at the hosting layer.
-- Do not log questions or secrets. Keep the provider API key on the server for public releases; a key embedded in the APK can be extracted.
-- Keep the service URL in the Flutter build configuration using `--dart-define=ADVISOR_API_BASE_URL=https://your-api.example`.
-- Review privacy and child-safety requirements before collecting or transmitting data from minors.
+Requirements: Python 3.11 or newer.
 
-If `AI_API_KEY` is absent, the endpoint returns HTTP 503 without making an upstream request.
+```bash
+cd backend
+
+# 1. Isolated environment
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 2. Dependencies
+pip install -r requirements.txt
+
+# 3. Configuration (never commit .env)
+cp ../.env.example .env            # if you keep .env.example at repo root
+# else create backend/.env with the keys listed in "Configuration" below
+# then open .env and set AI_API_KEY to a real provider key
+
+# 4. Export the variables (POSIX shells)
+set -a && source .env && set +a
+
+# 5. Run
+python app.py
+# or, for production-style multi-worker:
+gunicorn app:app --bind "${HOST:-0.0.0.0}:${PORT:-8000}" --workers 2
