@@ -1,69 +1,8 @@
-import 'dart:ui' show Color;
-
-/// Compile-time configuration for optional AI connectivity.
-///
-/// All values come from `--dart-define=KEY=value` at build time. Never commit
-/// a real key. For public releases prefer `ADVISOR_API_BASE_URL` (proxy)
-/// and never embeds provider credentials in the application.
+/// Static presentation constants. AI credentials are user-managed and stored
+/// locally by [AiSettingsStore]; no provider key is compiled into the APK.
 abstract final class AppConfig {
-  // ── Raw compile-time values ─────────────────────────────────────────
-  static const String _rawAdvisorApiBaseUrl =
-      String.fromEnvironment('ADVISOR_API_BASE_URL');
-  // ── Safety bounds ───────────────────────────────────────────────────
-  static const int _minTimeoutSeconds = 1;
-  static const int _maxTimeoutSeconds = 300;
-  static const int _maxRetriesCap = 5;
-
-  // ── Public, normalized values ───────────────────────────────────────
-  /// Advisor proxy base URL. Trailing slashes stripped. Empty when the app
-  /// was built without `ADVISOR_API_BASE_URL`.
-  static final String advisorApiBaseUrl =
-      _stripTrailingSlashes(_rawAdvisorApiBaseUrl);
-
-  /// Upstream timeout in seconds, clamped to [1, 300].
-  static final int aiTimeoutSeconds =
-      _clampInt(_rawAiTimeoutSeconds, _minTimeoutSeconds, _maxTimeoutSeconds);
-
-  /// Retry count on 5xx/timeout, clamped to [0, 5].
-  static final int aiMaxRetries =
-      _clampInt(_rawAiMaxRetries, 0, _maxRetriesCap);
-
-  /// Max completion tokens, clamped to [1, 8000].
-  /// Ready-to-use timeout for `http` calls.
-  static final Duration aiTimeout = Duration(seconds: aiTimeoutSeconds);
-
-  // ── Feature flags ───────────────────────────────────────────────────
-  static bool get hasAdvisorBackend => advisorApiBaseUrl.isNotEmpty;
-
-  /// True only when the configured backend URL uses HTTP or HTTPS.
-  static bool get hasValidAdvisorBackend =>
-      hasAdvisorBackend && _isHttpUrl(advisorApiBaseUrl);
-
-  /// AI is available only through the server-side proxy; otherwise use offline advice.
-  static bool get hasAnyAiChannel => hasValidAdvisorBackend;
-
-  static String describe() => 'AppConfig('
-      'advisor=${hasValidAdvisorBackend ? advisorApiBaseUrl : "<none>"}, '
-      'timeout=${aiTimeoutSeconds}s, '
-      'retries=$aiMaxRetries)';
-
-  // ── Helpers ─────────────────────────────────────────────────────────
-  static String _stripTrailingSlashes(String value) {
-    var v = value.trim();
-    while (v.endsWith('/')) {
-      v = v.substring(0, v.length - 1);
-    }
-    return v;
-  }
-
-  static bool _isHttpUrl(String value) =>
-      value.startsWith('http://') || value.startsWith('https://');
-
-  static int _clampInt(int value, int min, int max) {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-  }
+  static const Duration aiTimeout = Duration(seconds: 45);
+  static const int aiMaxRetries = 1;
 }
 
 /// Shared UI constants.
