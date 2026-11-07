@@ -69,6 +69,22 @@ def main() -> None:
 
     manifest_text = manifest.read_text(encoding="utf-8")
     manifest_text = re.sub(r'android:label="[^"]*"', f'android:label="{APP_LABEL}"', manifest_text, count=1)
+    # Secure-storage encryption keys must not be restored independently of
+    # the Android Keystore. This app intentionally keeps its data on-device.
+    if re.search(r'android:allowBackup="[^"]*"', manifest_text):
+        manifest_text = re.sub(
+            r'android:allowBackup="[^"]*"',
+            'android:allowBackup="false"',
+            manifest_text,
+            count=1,
+        )
+    else:
+        manifest_text = re.sub(
+            r'(<application\\b)',
+            r'\\1 android:allowBackup="false"',
+            manifest_text,
+            count=1,
+        )
     if "android.permission.INTERNET" not in manifest_text:
         manifest_text = manifest_text.replace(
             "<manifest ",
