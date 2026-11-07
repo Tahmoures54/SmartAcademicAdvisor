@@ -11,8 +11,7 @@ enum AdvisorErrorKind {
   /// Caller sent an invalid request (e.g. missing fields, oversized body).
   badRequest,
 
-  /// Server is not configured (proxy has no `AI_API_KEY`, or direct model
-  /// is unset).
+  /// Server-side AI service is not configured.
   misconfigured,
 
   /// Authentication with the provider failed.
@@ -68,15 +67,8 @@ class AdvisorException extends FormatException {
   }
 }
 
-/// Optional AI guidance via backend proxy (preferred) or embedded key (dev).
-///
-/// Resolution order:
-///   1. Valid backend proxy (`AppConfig.hasValidAdvisorBackend`).
-///   2. Direct embedded key (`AppConfig.hasDirectAiConfig`).
-///   3. Offline advice (returns `null`).
-///
-/// The proxy-first order prevents an extractable APK key from being used when
-/// a secure proxy is available.
+/// Optional AI guidance through the server-side backend proxy.
+/// Returns `null` when no valid backend is configured, allowing offline advice.
 class AdvisorApi {
   AdvisorApi({http.Client? client}) : _client = client ?? http.Client();
 
@@ -102,9 +94,6 @@ class AdvisorApi {
 
     if (AppConfig.hasValidAdvisorBackend) {
       return _requestBackend(stage: stage, goal: goal, question: q);
-    }
-    if (AppConfig.hasDirectAiConfig) {
-      return _requestDirect(stage: stage, goal: goal, question: q);
     }
     return null;
   }
@@ -140,60 +129,7 @@ class AdvisorApi {
     return _parseBackendResponse(response);
   }
 
-  // ── Direct provider path ───────────────────────────────────────────
-  Future<String> _requestDirect({
-    required String stage,
-    required String goal,
-    required String question,
-  }) async {
-    final uri = Uri.parse(_chatCompletionsUrl(AppConfig.aiBaseUrl));
-    final body = jsonEncode({
-      'model': AppConfig.aiModel,
-      'messages': [
-        {
-          'role': 'system',
-          'content':
-              'تو مربی آموزشی فارسی‌زبان و صبور هستی. پاسخ را متناسب با مقطع '
-              'تحصیلی کاربر تنظیم کن. ابتدا فهم مسئله را روشن کن، مطالب را '
-              'مرحله‌به‌مرحله توضیح بده، مثال ساده بزن و در پایان یک سؤال یا '
-              'تمرین کوتاه برای سنجش فهم بده. اگر اطلاعات کافی نیست، سؤال '
-              'روشن‌کننده بپرس. برای کودکان ساده و امن توضیح بده. نتیجه یا '
-              'اطلاعات پذیرش دانشگاه را تضمین نکن.',
-        },
-        {
-          'role': 'user',
-          'content': 'مقطع: $stage\nموضوع: $goal\nدرخواست: $question',
-        },
-      ],
-      'temperature': 0.4,
-      'max_tokens': AppConfig.aiMaxTokens,
-      'stream': false,
-    });
-
-    final response = await _sendWithRetry(
-      () => _client
-          .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${AppConfig.aiApiKey}',
-              'Accept': 'application/json',
-            },
-            body: body,
-          )
-          .timeout(AppConfig.aiTimeout),
-    );
-
-    return _parseProviderResponse(response);
-  }
-
   // ── Shared helpers ─────────────────────────────────────────────────
-  String _chatCompletionsUrl(String baseUrl) {
-    final trimmed = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
-    if (trimmed.endsWith('/chat/completions')) return trimmed;
-    return '$trimmed/chat/completions';
-  }
-
   /// Sends [send] and retries transient failures up to
   /// `AppConfig.aiMaxRetries` times. Non-transient status codes are returned
   /// as-is so the caller can map them precisely.
@@ -262,35 +198,6 @@ class AdvisorApi {
       kind: _kindForStatus(status),
       statusCode: status,
       requestId: requestId,
-      retryAfter: _parseRetryAfter(response),
-    );
-  }
-
-  Future<String> _parseProviderResponse(http.Response response) async {
-    final status = response.statusCode;
-
-    if (status == 200) {
-      final payload = _decodeJson(response, null);
-      final choices = payload is Map<String, dynamic> ? payload['choices'] : null;
-      final message = choices is List && choices.isNotEmpty && choices.first is Map
-          ? choices.first['message']
-          : null;
-      final content = message is Map ? message['content'] : null;
-      if (content is! String || content.trim().isEmpty) {
-        throw const AdvisorException(
-          'AI provider returned an invalid response',
-          kind: AdvisorErrorKind.invalidResponse,
-        );
-      }
-      return content.trim();
-    }
-
-    final message = _extractErrorMessage(response) ??
-        'AI provider returned HTTP $status';
-    throw AdvisorException(
-      message,
-      kind: _kindForStatus(status),
-      statusCode: status,
       retryAfter: _parseRetryAfter(response),
     );
   }
