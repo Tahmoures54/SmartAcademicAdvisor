@@ -1,65 +1,70 @@
 # همراه تحصیلی | Smart Academic Advisor
 
-اپلیکیشن Flutter فارسی و راست‌چین برای راهنمایی تحصیلی از ابتدایی تا کنکور، دانشگاه و پس از فارغ‌التحصیلی.
+اپلیکیشن Flutter فارسی و راست‌چین برای راهنمایی تحصیلی از مقطع ابتدایی تا کنکور، دانشگاه و پس از فارغ‌التحصیلی. تمام داده‌ها روی دستگاه کاربر ذخیره می‌شوند و اتصال به مربی هوش مصنوعی کاملاً اختیاری است.
 
-## قابلیت‌های شاخهٔ main
+---
 
-- داشبورد با انتخاب مقطع و موضوع راهنمایی
-- راهنمای قاعده‌محور آفلاین + اتصال اختیاری AI/backend
-- برنامهٔ درسی: کارها، تیک انجام، تایمر تمرکز ۲۵ دقیقه‌ای
-- دفتر آزمون‌ها با تاریخ، شمارش معکوس و نمره
-- یادداشت‌های محلی
-- پروفایل و حذف داده‌های ذخیره‌شده
-- ارزیابی سریع روش مطالعه
-- backend پایتون و CI در GitHub Actions
+## فهرست
 
-## معماری
+- [قابلیت‌ها](#قابلیتها)
+- [پیش‌نیازها](#پیشنیازها)
+- [شروع سریع](#شروع-سریع)
+- [پیکربندی AI](#پیکربندی-ai)
+- [تست](#تست)
+- [بک‌اند (اختیاری)](#بکاند-اختیاری)
+- [معماری](#معماری)
+- [CI](#ci)
+- [حریم خصوصی و امنیت](#حریم-خصوصی-و-امنیت)
+- [محدودیت‌ها و نقشهٔ راه](#محدودیتها-و-نقشهٔ-راه)
+- [عیب‌یابی](#عیبیابی)
+- [مجوز](#مجوز)
 
-```
-lib/
-  main.dart                 # ورود + UI کامل (متصل به سرویس‌ها)
-  config/app_config.dart
-  models/                   # Exam, StudySession, ReviewCard, PlannerSnapshot
-  services/
-    local_store.dart        # SharedPreferences با کلیدهای سازگار قبلی
-    offline_advice.dart
-    advisor_api.dart
-  features/
-    assessment/study_assessment_page.dart
-```
+---
 
-## اجرا
+## قابلیت‌ها
+
+### داشبورد و راهنمایی
+- انتخاب **مقطع تحصیلی** (۶ گزینه، آینهٔ `_ALLOWED_STAGES` در بک‌اند)
+- انتخاب **موضوع راهنمایی** (۴ گزینه، آینهٔ `_ALLOWED_GOALS`)
+- راهنمای **قاعده‌محور آفلاین** با نرمال‌سازی فارسی‌پسند (ZWNJ، bidi control، فاصلهٔ اضافی)
+- اتصال اختیاری به مربی هوش مصنوعی
+- مدیریت دقیق خطا با `AdvisorException` + `AdvisorErrorKind`
+  (`badRequest`, `misconfigured`, `unauthorized`, `rateLimited`, `serverError`, `network`, `invalidResponse`)
+- **Retry با backoff** روی خطاهای گذرا (5xx، timeout)
+- احترام به هدر `Retry-After` در پاسخ 429
+
+### برنامهٔ درسی
+- افزودن کار، تیک انجام، ذخیرهٔ محلی
+- **تایمر تمرکز ۲۵ دقیقه‌ای** با اعلان اتمام
+- `PlannerSnapshot` مقاوم در برابر داده‌های خراب (یک رکورد خراب، همه را از بین نمی‌برد)
+
+### آزمون‌ها
+- ثبت آزمون با تاریخ و نمرهٔ اختیاری (۰–۲۰)
+- شمارش معکوس روزانه + آگاهی از «گذشته/امروز/آینده»
+- حذف با تأییدیه
+
+### یادداشت‌ها
+- ذخیرهٔ خودکار با **debounce ۴۰۰ms** (کاهش فشار روی SharedPreferences)
+- دکمهٔ ذخیرهٔ دستی
+
+### پروفایل و ارزیابی
+- **ارزیابی سریع روش مطالعه** (۴ پرسش، امتیاز ۰–۸، بدون معکوس‌سازی)
+- حذف **فقط دادهٔ planner** — تنظیمات دیگر برنامه دست‌نخورده می‌ماند
+
+---
+
+## پیش‌نیازها
+
+| ابزار | نسخهٔ حداقل | دلیل |
+|-------|-------------|------|
+| **Flutter** | **3.32.0** | `RadioGroup<int>` در `study_assessment_page.dart` و `CardThemeData` در `main.dart` |
+| **Dart** | **3.6.0** | همراه Flutter 3.32+ می‌آید |
+| JDK | 17 | Android Gradle Plugin |
+| Android SDK | 34+ | `compileSdk` پیش‌فرض Flutter 3.32 |
+| Python (فقط بک‌اند) | 3.11 | `backend/app.py` |
+
+بررسی محیط:
 
 ```bash
-flutter create --platforms=android .
-flutter pub get
-flutter analyze
-flutter test
-flutter run
-```
-
-```bash
-flutter build apk --debug
-```
-
-برای AI زنده:
-
-```bash
-flutter run --dart-define=ADVISOR_API_BASE_URL=https://your-api.example
-```
-
-یا Secretهای `AI_API_KEY` در Actions برای بیلد آزمایشی. برای انتشار عمومی فقط کلید سمت سرور توصیه می‌شود.
-
-## Backend
-
-جزئیات در [backend/README.md](backend/README.md).
-
-```bash
-cd backend && pip install -r requirements.txt && python -m unittest -v test_app.py
-```
-
-## محدودیت‌ها
-
-- backend عمومی هنوز deploy نشده است.
-- همگام‌سازی ابری وجود ندارد.
-- ارزیابی مطالعه تشخیص علمی نیست.
+flutter --version         # باید >= 3.32.0 باشد
+flutter doctor -v         # بررسی Android toolchain
