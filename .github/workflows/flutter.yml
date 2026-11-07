@@ -53,8 +53,13 @@ jobs:
 
       - name: Ensure no compile-time provider secrets
         run: |
-          if grep -R -nE "String.fromEnvironment\(['\"]AI_API_KEY|--dart-define=AI_API_KEY" lib .github/workflows; then
-            echo "::error::Provider API keys must never be compiled into the APK."
+          if grep -R -n "String.fromEnvironment" lib; then
+            echo "::error::Provider settings must be loaded from secure device storage, not compile-time defines."
+            exit 1
+          fi
+          forbidden_define="--dart-define=AI_"API_KEY
+          if grep -R -n "$forbidden_define" .github/workflows; then
+            echo "::error::Provider API keys must never be injected into APK builds."
             exit 1
           fi
 
