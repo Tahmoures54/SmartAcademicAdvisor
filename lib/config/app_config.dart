@@ -1,3 +1,5 @@
+import 'dart:ui' show Color;
+
 /// Static presentation constants. AI credentials are user-managed and stored
 /// locally by [AiSettingsStore]; no provider key is compiled into the APK.
 abstract final class AppConfig {
