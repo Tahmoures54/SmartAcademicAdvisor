@@ -15,14 +15,6 @@ android/app/release-keystore.jks
 *.jks
 *.keystore
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-
 # Local secrets
 .env
 .env.*
-!.env.example
