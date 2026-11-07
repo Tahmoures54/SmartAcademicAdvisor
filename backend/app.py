@@ -34,6 +34,7 @@ import uuid
 from collections import defaultdict, deque
 from typing import Deque, Dict, Optional
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from flask import Flask, g, jsonify, request
@@ -179,7 +180,11 @@ def _call_upstream(
         try:
             outbound = Request(url, data=body, headers=headers, method="POST")
             with urlopen(outbound, timeout=timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
+                max_bytes = _env_int("MAX_UPSTREAM_RESPONSE_BYTES", 1_048_576, minimum=1024, maximum=5_242_880)
+                raw = response.read(max_bytes + 1)
+                if len(raw) > max_bytes:
+                    raise ValueError("Provider response exceeded the configured size limit")
+                return json.loads(raw.decode("utf-8"))
         except HTTPError as exc:
             # Retry 5xx only; 4xx are caller/config errors and will not recover.
             if 500 <= exc.code < 600 and attempt < retries:
@@ -207,6 +212,7 @@ def _setup_request_id() -> None:
 @app.after_request
 def _apply_common_headers(response):
     # Security headers.
+    response.headers.setdefault("Cache-Control", "no-store")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
@@ -236,6 +242,17 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@app.get("/ready")
+def ready():
+    """Readiness probe: report ready only when a valid provider is configured."""
+    api_key = _env_str("AI_API_KEY", "")
+    base_url = _env_str("AI_BASE_URL", "https://api.deepseek.com")
+    model = _env_str("AI_MODEL", "deepseek-chat")
+    parsed = urlsplit(_chat_completions_url(base_url)) if base_url else None
+    configured = bool(api_key and model and parsed and parsed.scheme == "https" and parsed.netloc)
+    return jsonify({"status": "ready" if configured else "not_ready"}), 200 if configured else 503
+
+
 @app.route("/api/advice", methods=["OPTIONS"])
 def advice_options():
     # CORS preflight; actual headers are added by `_apply_common_headers`.
@@ -254,7 +271,12 @@ def advice():
     stage = payload.get("stage")
     goal = payload.get("goal")
     question = payload.get("question")
-    if stage not in _ALLOWED_STAGES or goal not in _ALLOWED_GOALS:
+    if (
+        not isinstance(stage, str)
+        or not isinstance(goal, str)
+        or stage not in _ALLOWED_STAGES
+        or goal not in _ALLOWED_GOALS
+    ):
         return _error("Choose a valid study stage and topic", 400)
 
     max_question = _env_int("MAX_QUESTION_LENGTH", 1500, minimum=1)
@@ -282,6 +304,9 @@ def advice():
     model = _env_str("AI_MODEL", "deepseek-chat")
     if not base_url or not model:
         return _error("AI provider configuration is incomplete", 503)
+    parsed_provider_url = urlsplit(_chat_completions_url(base_url))
+    if parsed_provider_url.scheme != "https" or not parsed_provider_url.netloc:
+        return _error("AI provider URL must use HTTPS", 503)
 
     timeout = _env_int("AI_TIMEOUT_SECONDS", 30, minimum=1)
     retries = _env_int("AI_MAX_RETRIES", 0, minimum=0, maximum=5)
