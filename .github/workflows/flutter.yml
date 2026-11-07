@@ -75,6 +75,17 @@ jobs:
             echo "::notice::test/ not found — skipping format check"
           fi
 
+      - name: Ensure no provider credentials are embedded in Flutter sources or APK build
+        run: |
+          if grep -R -nE 'AI_API_KEY|AI_BASE_URL|AI_MODEL' lib; then
+            echo "::error::Provider credentials/configuration must remain server-side."
+            exit 1
+          fi
+          if grep -nE 'AI_API_KEY|AI_BASE_URL|AI_MODEL' .github/workflows/flutter.yml; then
+            echo "::error::The Android build workflow must not inject provider credentials."
+            exit 1
+          fi
+
       - name: Analyze
         # برای سخت‌گیری بیشتر: --fatal-warnings --fatal-infos را اضافه کنید
         run: flutter analyze --no-pub
